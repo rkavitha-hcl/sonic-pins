@@ -28,8 +28,8 @@
 #include "glog/logging.h"
 #include "gutil/gutil/collections.h"
 #include "gutil/gutil/status.h"
-#include "p4_pdpi/ir.pb.h"
-#include "p4_pdpi/utils/ir.h"
+#include "p4_infra/p4_pdpi/ir.pb.h"
+#include "p4_infra/p4_pdpi/utils/ir.h"
 #include "p4rt_app/utils/table_utility.h"
 #include "swss/json.h"
 

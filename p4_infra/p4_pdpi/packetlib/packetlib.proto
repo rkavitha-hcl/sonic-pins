@@ -11,11 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 syntax = "proto3";
- 
+
 package packetlib;
- 
+
 // Describes a network packet.
 message Packet {
   // Headers in order, starting with outermost header. Can be empty.
@@ -33,12 +33,12 @@ message Packet {
   // serialization.
   repeated string reasons_invalid = 4;
 }
- 
+
 // Multiple packets.
 message Packets {
   repeated Packet packets = 1;
 }
- 
+
 // Describes a network packet header. This is not an exhaustive list of headers,
 // and not every header may support all fields available for that particular
 // header (e.g. optional fields may not be supported).
@@ -66,11 +66,13 @@ message Header {
     SaiP4BMv2PacketInHeader sai_p4_bmv2_packet_in_header = 10;
     IpfixHeader ipfix_header = 11;
     PsampHeader psamp_header = 12;
+    PtpHeader ptp_header = 13;
     PspHeader psp_header = 14;
+    CsigHeader csig_header = 15;
     HopByHopOptionsHeader hop_by_hop_options_header = 16;
   }
 }
- 
+
 // An ethernet header.
 // Only a handful of ethertypes are supported.
 message EthernetHeader {
@@ -78,7 +80,7 @@ message EthernetHeader {
   string ethernet_source = 2;       // Format::MAC
   string ethertype = 3;             // 16 bits
 }
- 
+
 // A VLAN header.
 // Only a handful of ethertypes are supported.
 message VlanHeader {
@@ -87,7 +89,16 @@ message VlanHeader {
   string vlan_identifier = 3;          // 12 bits
   string ethertype = 4;                // 16 bits
 }
- 
+
+// A CSIG header.
+message CsigHeader {
+  string signal_type = 1;       // 3 bits
+  string reserved0 = 2;         // 1 bit
+  string signal_value = 3;      // 5 bits
+  string locator_metadata = 4;  // 7 bits
+  string ethertype = 5;         // 16 bits
+}
+
 // An ARP header.
 // It is assumed to be used with Ethernet and IPv4.
 message ArpHeader {
@@ -101,7 +112,7 @@ message ArpHeader {
   string target_hardware_address = 8;  // Format::MAC
   string target_protocol_address = 9;  // Format::IPV4
 }
- 
+
 // An IPv4 header.
 message Ipv4Header {
   string version = 1;            //  4 bits (computed field, constant 4)
@@ -122,7 +133,7 @@ message Ipv4Header {
   // additional trailing bits so as to match in length what is specified by IHL.
   string uninterpreted_options = 14;
 }
- 
+
 // An IPv6 header.
 message Ipv6Header {
   string version = 1;           //  4 bits (computed field, constant 6)
@@ -135,7 +146,7 @@ message Ipv6Header {
   string ipv6_source = 8;       // Format::IPV6
   string ipv6_destination = 9;  // Format::IPV6
 }
- 
+
 // An IPv6 hop-by-hop options extension header
 // (https://datatracker.ietf.org/doc/html/rfc2460#section-4.3).
 message HopByHopOptionsHeader {
@@ -143,7 +154,7 @@ message HopByHopOptionsHeader {
   string header_extension_length = 2;  // 8 bits
   string options_and_padding = 3;      // 48 bits
 }
- 
+
 // An ICMP header.
 message IcmpHeader {
   string type = 1;            // 8 bits
@@ -151,6 +162,7 @@ message IcmpHeader {
   string checksum = 3;        // 16 bits (computed field)
   string rest_of_header = 4;  // 32 bits
 }
+
 // A UDP header.
 message UdpHeader {
   string source_port = 1;       // 16 bits
@@ -158,7 +170,7 @@ message UdpHeader {
   string length = 3;            // 16 bits (computed field)
   string checksum = 4;          // 16 bits (computed field)
 }
- 
+
 // A TCP header.
 message TcpHeader {
   string source_port = 1;             // 16 bits
@@ -171,7 +183,7 @@ message TcpHeader {
   // uninterpreted 32-bit words in hex format when data_offset > 5.
   string uninterpreted_options = 7;
 }
- 
+
 // Standard GRE packet header (RFC 2784).
 message GreHeader {
   // If the checksum_present bit is set, then the checksum and the reserved1
@@ -187,7 +199,7 @@ message GreHeader {
   // Empty string if checksum_bit is not set.
   string reserved1 = 6;  // 16 bits (optional)
 }
- 
+
 // Packet IO header is used to encapsulate packet-ins, i.e. packets punted from
 // the switch to the controller, in SAI P4 / PINS. Never extracted during
 // parsing, but serialized during deparsing for packets punted to the
@@ -200,7 +212,7 @@ message SaiP4BMv2PacketInHeader {
   // Padding field to align the header to 8-bit multiple, as required by BMv2.
   string unused_pad = 3;  // 6 bits
 }
- 
+
 // IP Flow Information eXport header (RFC 7011 through RFC 7015, RFC 5103).
 message IpfixHeader {
   // Version of IPFIX to which this Message conforms.
@@ -218,7 +230,7 @@ message IpfixHeader {
   // unique to the Exporting Process.
   string observation_domain_id = 5;  // 32 bits
 }
- 
+
 // Packet Sampling protocol header (RFC 5476)
 message PsampHeader {
   string template_id = 1;  // 16 bits
@@ -237,9 +249,26 @@ message PsampHeader {
   string variable_length = 11;        // 8 bits (computed field)
   string packet_sampled_length = 12;  // 16 bits (computed field)
 }
- 
+
 // Precision Time Protocol header (RFC 1588-2008)
-// message PspHeader (https://github.com/google/psp)
+message PtpHeader {
+  string transport_specific = 1;
+  string message_type = 2;
+  string reserved0 = 3;
+  string version_ptp = 4;
+  string message_length = 5;
+  string domain_number = 6;
+  string reserved1 = 7;
+  string flags = 8;
+  string correction_field = 9;
+  string reserved2 = 10;
+  string source_port_identity = 11;
+  string sequence_id = 12;
+  string control_field = 13;
+  string log_message_interval = 14;
+}
+
+// message PspHeader
 message PspHeader {
   string next_header = 1;
   string header_ext_length = 2;

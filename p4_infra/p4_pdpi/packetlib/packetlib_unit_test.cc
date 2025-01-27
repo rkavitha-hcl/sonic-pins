@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <net/ethernet.h>
 #include <netinet/in.h>
 
@@ -555,6 +556,54 @@ TEST(PacketLib, ExperimentalEncapsulatedPacket) {
   ASSERT_OK(SerializePacket(packet));
 }
 
+TEST(GetEthernetTrailerTest, WorksForIpv4PacketWithVlanAndCsig) {
+  Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
+    headers {
+      ethernet_header {
+        ethernet_destination: "aa:bb:cc:dd:ee:ff"
+        ethernet_source: "11:22:33:44:55:66"
+        ethertype: "0x8100"
+      }
+    }
+    headers {
+      vlan_header {
+        priority_code_point: "0x0",
+        drop_eligible_indicator: "0x0",
+        vlan_identifier: "0x000",
+        ethertype: "0x9900"
+      }
+    }
+    headers {
+      csig_header {
+        signal_type: "0x1"
+        reserved0: "0x0"
+        signal_value: "0x11"
+        locator_metadata: "0x00"
+        ethertype: "0x0800"
+      }
+    }
+    headers {
+      ipv4_header {
+        dscp: "0x1b"
+        ecn: "0x1"
+        identification: "0xa3cd"
+        flags: "0x0"
+        fragment_offset: "0x0000"
+        ttl: "0x10"
+        protocol: "0x05"
+        ipv4_source: "10.0.0.1"
+        ipv4_destination: "20.0.0.3"
+      }
+    }
+    payload: "IPv4 packet payload"
+  )pb");
+  ASSERT_OK(UpdateAllComputedFields(packet));
+  const std::string trailer = "Hi, I am the trailer, nice to meet you :)";
+  packet.mutable_payload()->append(trailer);
+
+  ASSERT_THAT(GetEthernetTrailer(packet), IsOkAndHolds(Eq(trailer)));
+}
+
 TEST(GetEthernetTrailerTest, WorksForIpv6Packet) {
   Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
     headers {
@@ -599,6 +648,23 @@ TEST(GetEthernetTrailerTest,
         ethertype: "0x0800"
       }
     }
+  )pb");
+  ASSERT_THAT(GetEthernetTrailer(packet),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST(GetEthernetTrailerTest,
+     PacketHeaderDoesNotContainAnyHeadersAfterVlanOrCsig) {
+  Packet packet = gutil::ParseProtoOrDie<Packet>(R"pb(
+    headers {
+      ethernet_header {
+        ethernet_destination: "aa:bb:cc:dd:ee:ff"
+        ethernet_source: "11:22:33:44:55:66"
+        ethertype: "0x0800"
+      }
+    }
+    headers { vlan_header {} }
+    headers { csig_header {} }
   )pb");
   ASSERT_THAT(GetEthernetTrailer(packet),
               StatusIs(absl::StatusCode::kInvalidArgument));
@@ -837,7 +903,7 @@ TEST(PacketLib,
       }
     }
   )pb");
-  
+
   // Update adds a single padding for N-padding.
   ASSERT_OK(packetlib::UpdateAllComputedFields(packet).status());
   ASSERT_OK_AND_ASSIGN(std::string raw_packet,
@@ -862,7 +928,7 @@ TEST(PacketLib,
       }
     }
   )pb");
-  
+
   // Update adds a N-padding.
   ASSERT_OK(packetlib::UpdateAllComputedFields(packet).status());
   ASSERT_OK_AND_ASSIGN(std::string raw_packet,

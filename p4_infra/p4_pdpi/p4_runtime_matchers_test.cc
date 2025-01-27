@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,25 +11,25 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/p4_runtime_matchers.h"
- 
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "gutil/gutil/proto_matchers.h"
 #include "gutil/gutil/testing.h"
 #include "p4/v1/p4runtime.pb.h"
 #include "p4_infra/p4_pdpi/packetlib/packetlib.h"
- 
+
 namespace pdpi {
 namespace {
- 
+
 using ::gutil::EqualsProto;
 using ::p4::v1::PacketIn;
 using ::p4::v1::StreamMessageResponse;
 using ::testing::_;
 using ::testing::Not;
- 
+
 TEST(HasPacketTest, DoesHavePacket) {
   EXPECT_THAT(gutil::ParseProtoOrDie<StreamMessageResponse>(R"pb(
                 packet {}
@@ -48,7 +48,7 @@ TEST(HasPacketTest, DoesHavePacket) {
               )pb"),
               HasPacketIn(Not(EqualsProto(""))));
 }
- 
+
 TEST(HasPacketTest, DoesNotHavePacket) {
   EXPECT_THAT(gutil::ParseProtoOrDie<StreamMessageResponse>(""),
               Not(HasPacketIn()));
@@ -63,25 +63,25 @@ TEST(HasPacketTest, DoesNotHavePacket) {
               )pb"),
               Not(HasPacketIn(_)));
 }
- 
+
 TEST(HasPacketTest, Describtion) {
   auto describe = [](const auto& matcher) {
     return testing::DescribeMatcher<const StreamMessageResponse&>(matcher);
   };
- 
+
   EXPECT_EQ(describe(HasPacketIn()),
             "is a P4Runtime `StreamMessageResponse` containing a `packet`");
   EXPECT_EQ(describe(HasPacketIn(_)),
             "is a P4Runtime `StreamMessageResponse` containing a `packet`"
             " that is anything");
- 
+
   EXPECT_EQ(describe(Not(HasPacketIn())),
             "is a P4Runtime `StreamMessageResponse` containing no `packet`");
   EXPECT_EQ(describe(Not(HasPacketIn(_))),
             "is a P4Runtime `StreamMessageResponse` containing no `packet`, or "
             "a `packet` that never matches");
 }
- 
+
 TEST(ParsedPayloadIsTest, PayloadIs) {
   EXPECT_THAT(PacketIn(), ParsedPayloadIs(_));
   EXPECT_THAT(gutil::ParseProtoOrDie<PacketIn>(R"(payload: "1234")"),
@@ -91,7 +91,7 @@ TEST(ParsedPayloadIsTest, PayloadIs) {
       gutil::ParseProtoOrDie<PacketIn>(R"(payload: "1234")"),
       ParsedPayloadIs(Not(EqualsProto(packetlib::ParsePacket("4321")))));
 }
- 
+
 TEST(ParsedPayloadIsTest, PayloadIsNot) {
   EXPECT_THAT(
       PacketIn(),
@@ -101,19 +101,19 @@ TEST(ParsedPayloadIsTest, PayloadIsNot) {
       gutil::ParseProtoOrDie<PacketIn>(R"(payload: "1234")"),
       Not(ParsedPayloadIs(EqualsProto(packetlib::ParsePacket("4321")))));
 }
- 
+
 TEST(ParsedPayloadIsTest, Description) {
   auto describe = [](const auto& matcher) {
     return testing::DescribeMatcher<const PacketIn&>(matcher);
   };
- 
+
   EXPECT_EQ(describe(ParsedPayloadIs(_)),
             "contains a `payload` that (when parsed as a packetlib.Packet) is "
             "anything");
   EXPECT_EQ(describe(ParsedPayloadIs(EqualsProto("nonsense"))),
             "contains a `payload` that (when parsed as a packetlib.Packet) is "
             "equal to <\nnonsense>");
- 
+
   EXPECT_EQ(describe(Not(ParsedPayloadIs(_))),
             "contains a `payload` that (when parsed as a packetlib.Packet) "
             "never matches");
@@ -124,7 +124,7 @@ TEST(ParsedPayloadIsTest, Description) {
             "contains a `payload` that (when parsed as a packetlib.Packet) "
             "is equal to <\nnonsense>");
 }
- 
+
 // Make sure the `HasPacketIn` and `ParsedPayloadIs` matchers work well when
 // combined.
 TEST(HasPacketInParsedPayloadIsTest, Description) {
@@ -141,6 +141,6 @@ TEST(HasPacketInParsedPayloadIsTest, Description) {
             "a `packet` that contains a `payload` that (when parsed as a "
             "packetlib.Packet) is not equal to <\npayload: \"test packet\">");
 }
- 
+
 }  // namespace
 }  // namespace pdpi

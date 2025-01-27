@@ -11,26 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/netaddr/ipv4_address.h"
- 
+
 #include <bitset>
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
- 
+
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "gutil/gutil/status.h"
 #include "p4_infra/p4_pdpi/netaddr/network_address.h"
- 
+
 namespace netaddr {
- 
+
 namespace {
- 
+
 bool ParseByteInBase10(absl::string_view base10_string, uint8_t& byte) {
   if (base10_string.empty() || base10_string.size() > 3) return false;
   int buffer = 0;
@@ -42,18 +42,18 @@ bool ParseByteInBase10(absl::string_view base10_string, uint8_t& byte) {
   memcpy(&byte, &buffer, 1);
   return true;
 }
- 
+
 }  // namespace
- 
+
 absl::StatusOr<Ipv4Address> Ipv4Address::OfString(absl::string_view address) {
   auto invalid = [=]() {
     return gutil::InvalidArgumentErrorBuilder()
-<< "Invalid IPv4 address: '" << address << "'";
+           << "Invalid IPv4 address: '" << address << "'";
   };
- 
+
   std::vector<std::string> bytes = absl::StrSplit(address, '.');
   if (bytes.size() != 4) return invalid();
- 
+
   std::bitset<32> bits;
   for (absl::string_view byte_string : bytes) {
     uint8_t byte;
@@ -63,7 +63,7 @@ absl::StatusOr<Ipv4Address> Ipv4Address::OfString(absl::string_view address) {
   }
   return Ipv4Address(bits);
 }
- 
+
 std::string Ipv4Address::ToString() const {
   uint8_t byte4 = (bits_ >> 24).to_ulong() & 0xFFu;
   uint8_t byte3 = (bits_ >> 16).to_ulong() & 0xFFu;
@@ -71,5 +71,5 @@ std::string Ipv4Address::ToString() const {
   uint8_t byte1 = (bits_ >> 0).to_ulong() & 0xFFu;
   return absl::StrFormat("%d.%d.%d.%d", byte4, byte3, byte2, byte1);
 }
- 
+
 }  // namespace netaddr

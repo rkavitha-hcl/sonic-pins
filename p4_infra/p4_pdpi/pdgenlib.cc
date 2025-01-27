@@ -11,15 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/pdgenlib.h"
- 
+
 #include <stdint.h>
- 
+
 #include <algorithm>
 #include <string>
 #include <vector>
- 
+
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
@@ -36,23 +36,23 @@
 #include "p4_infra/p4_pdpi/internal/ordered_map.h"
 #include "p4_infra/p4_pdpi/ir.pb.h"
 #include "p4_infra/p4_pdpi/pd.h"
- 
+
 using ::absl::StatusOr;
 using ::gutil::InvalidArgumentErrorBuilder;
 using ::p4::config::v1::MatchField;
- 
+
 namespace pdpi {
- 
+
 namespace {
- 
+
 std::string GetUnsupportedWarning(absl::string_view unsupported_entity) {
   return absl::StrCat("// CAUTION: This ", unsupported_entity,
                       " is not (yet) supported.\n");
 }
- 
+
 // Returns a P4 object ID without the object tag.
 uint32_t IdWithoutTag(uint32_t id) { return id & 0xffffff; }
- 
+
 // Returns a header comment.
 std::string HeaderComment(const std::string& title) {
   std::string prefix = "// -- ";
@@ -60,7 +60,7 @@ std::string HeaderComment(const std::string& title) {
   std::string postfix(kLineWidth - prefix.size() - title.size() - 1, '-');
   return absl::StrCat("\n", prefix, title, " ", postfix, "\n");
 }
- 
+
 // Returns a comment explaining the format of a match field or parameter, e.g.
 // "Format::HEX_STRING / 10 bits".
 std::string GetFormatComment(Format format, int32_t bitwidth) {
@@ -73,7 +73,7 @@ std::string GetFormatComment(Format format, int32_t bitwidth) {
   }
   return absl::StrCat("Format::", Format_Name(format), bitwidth_str);
 }
- 
+
 // Returns the proto field for a match.
 StatusOr<std::string> GetMatchFieldDeclaration(
     const IrMatchFieldDefinition& match) {
@@ -98,28 +98,28 @@ StatusOr<std::string> GetMatchFieldDeclaration(
       break;
     default:
       return InvalidArgumentErrorBuilder()
-<< "Invalid match kind: " << match.DebugString();
+             << "Invalid match kind: " << match.DebugString();
   }
- 
+
   ASSIGN_OR_RETURN(
       const std::string field_name,
       P4NameToProtobufFieldName(match.match_field().name(), kP4MatchField));
- 
+
   std::string result;
   if (match.is_unsupported()) {
     absl::StrAppend(&result, GetUnsupportedWarning("match field"), "    ");
   }
   absl::StrAppend(
-&result, type, " ", field_name, " = ", match.match_field().id(), "; // ",
+      &result, type, " ", field_name, " = ", match.match_field().id(), "; // ",
       match_kind, " match / ",
       GetFormatComment(match.format(), match.match_field().bitwidth()));
   return result;
 }
- 
+
 // Returns the nested Match message for a given table.
 StatusOr<std::string> GetTableMatchMessage(const IrTableDefinition& table) {
   std::string result = "";
- 
+
   absl::StrAppend(&result, "  message Match {\n");
   std::vector<IrMatchFieldDefinition> match_fields;
   for (const auto& [id, match] : Ordered(table.match_fields_by_id())) {
@@ -139,14 +139,14 @@ StatusOr<std::string> GetTableMatchMessage(const IrTableDefinition& table) {
     absl::StrAppend(&result, "    ", match_pd, "\n");
   }
   absl::StrAppend(&result, "  }\n");
- 
+
   return result;
 }
- 
+
 // Returns the nested Action message for a given table.
 StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
   std::string result;
- 
+
   absl::StrAppend(&result, "  message Action {\n");
   std::vector<IrActionReference> entry_actions;
   for (const auto& action : table.entry_actions()) {
@@ -180,7 +180,7 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
     absl::StrAppend(&result, "  }\n");
   }
   absl::StrAppend(&result, "  }\n");
- 
+
   // If necessary, add WcmpAction message
   if (table.uses_oneshot()) {
     absl::StrAppend(&result, "  message WcmpAction {\n");
@@ -191,7 +191,7 @@ StatusOr<std::string> GetTableActionMessage(const IrTableDefinition& table) {
   }
   return result;
 }
- 
+
 // Returns the contents of the @entry_restriction on the given table (if any).
 absl::optional<std::string> GetConstraint(const IrTableDefinition& table) {
   std::string prefix = "@entry_restriction(\"";
@@ -203,14 +203,15 @@ absl::optional<std::string> GetConstraint(const IrTableDefinition& table) {
   }
   return absl::nullopt;
 }
+
 // Returns the message for a given table.
 StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
   std::string result;
- 
+
   if (table.is_unsupported()) {
     absl::StrAppend(&result, GetUnsupportedWarning("table"));
   }
- 
+
   const absl::optional<std::string> constraint = GetConstraint(table);
   if (constraint.has_value()) {
     absl::StrAppend(&result, "// Table entry restrictions:");
@@ -230,12 +231,12 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
   ASSIGN_OR_RETURN(const std::string message_name,
                    P4NameToProtobufMessageName(name, kP4Table));
   absl::StrAppend(&result, "message ", message_name, " {\n");
- 
+
   // Match message.
   ASSIGN_OR_RETURN(const auto& match_message, GetTableMatchMessage(table));
   absl::StrAppend(&result, match_message);
   absl::StrAppend(&result, "  Match match = 1;\n");
- 
+
   // Action message.
   ASSIGN_OR_RETURN(const auto& action_message, GetTableActionMessage(table));
   absl::StrAppend(&result, action_message);
@@ -244,7 +245,7 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
   } else {
     absl::StrAppend(&result, "  Action action = 2;\n");
   }
- 
+
   // Priority (if applicable).
   bool has_priority = false;
   for (const auto& [id, match] : Ordered(table.match_fields_by_id())) {
@@ -257,7 +258,7 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
   if (has_priority) {
     absl::StrAppend(&result, "  int32 priority = 3;\n");
   }
- 
+
   // Meter (if applicable).
   if (table.has_meter()) {
     switch (table.meter().unit()) {
@@ -269,10 +270,10 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
         break;
       default:
         return InvalidArgumentErrorBuilder()
-<< "Unsupported meter: " << table.meter().DebugString();
+               << "Unsupported meter: " << table.meter().DebugString();
     }
   }
- 
+
   // Counter (if applicable).
   if (table.has_counter()) {
     switch (table.counter().unit()) {
@@ -288,10 +289,10 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
         break;
       default:
         return InvalidArgumentErrorBuilder()
-<< "Unsupported counter: " << table.counter().DebugString();
+               << "Unsupported counter: " << table.counter().DebugString();
     }
   }
- 
+
   // Meter counters (if applicable), we re-use the counter unit defintion
   // for meter counters as well.
   if (table.has_meter() && table.has_counter()) {
@@ -306,34 +307,34 @@ StatusOr<std::string> GetTableMessage(const IrTableDefinition& table) {
         break;
       case p4::config::v1::CounterSpec::BOTH:
         absl::StrAppend(
-&result,
+            &result,
             "  MeterBytesAndPacketsCounterData meter_counter_data = 9;\n");
         break;
       default:
         return InvalidArgumentErrorBuilder() << "Unsupported meter counter: "
-<< table.counter().DebugString();
+                                             << table.counter().DebugString();
     }
   }
- 
+
   absl::StrAppend(&result, "  bytes controller_metadata = 8;\n");
- 
+
   absl::StrAppend(&result, "}");
   return result;
 }
- 
+
 // Returns the message for the given action.
 StatusOr<std::string> GetActionMessage(const IrActionDefinition& action) {
   std::string result = "";
- 
+
   if (action.is_unsupported()) {
     absl::StrAppend(&result, GetUnsupportedWarning("action"));
   }
- 
+
   const std::string& name = action.preamble().alias();
   ASSIGN_OR_RETURN(const std::string message_name,
                    P4NameToProtobufMessageName(name, kP4Action));
   absl::StrAppend(&result, "message ", message_name, " {\n");
- 
+
   // Sort parameters by ID
   std::vector<IrActionDefinition::IrActionParamDefinition> params;
   for (const auto& [id, param] : Ordered(action.params_by_id())) {
@@ -344,7 +345,7 @@ StatusOr<std::string> GetActionMessage(const IrActionDefinition& action) {
                const IrActionDefinition::IrActionParamDefinition& b) -> bool {
               return a.param().id() < b.param().id();
             });
- 
+
   // Field for every param.
   for (const auto& param : params) {
     ASSIGN_OR_RETURN(
@@ -355,17 +356,17 @@ StatusOr<std::string> GetActionMessage(const IrActionDefinition& action) {
                       reference.match_field(), "'.\n");
     }
     absl::StrAppend(
-&result, "  string ", param_name, " = ", param.param().id(), "; // ",
+        &result, "  string ", param_name, " = ", param.param().id(), "; // ",
         GetFormatComment(param.format(), param.param().bitwidth()), "\n");
   }
- 
+
   absl::StrAppend(&result, "}");
   return result;
 }
- 
+
 StatusOr<std::string> GetPacketIoMessage(const IrP4Info& info) {
   std::string result = "";
- 
+
   // Packet-in
   absl::StrAppend(&result, "message PacketIn {\n");
   absl::StrAppend(&result, "  bytes payload = 1;\n\n");
@@ -377,13 +378,13 @@ StatusOr<std::string> GetPacketIoMessage(const IrP4Info& info) {
         const std::string meta_name,
         P4NameToProtobufFieldName(meta.metadata().name(), kP4MetaField));
     absl::StrAppend(
-&result, "    string ", meta_name, " = ", meta.metadata().id(), "; // ",
+        &result, "    string ", meta_name, " = ", meta.metadata().id(), "; // ",
         GetFormatComment(meta.format(), meta.metadata().bitwidth()), "\n");
   }
   absl::StrAppend(&result, "  }\n");
   absl::StrAppend(&result, "  Metadata metadata = 2;\n");
   absl::StrAppend(&result, "}\n");
- 
+
   // Packet-out
   absl::StrAppend(&result, "message PacketOut {\n");
   absl::StrAppend(&result, "  bytes payload = 1;\n\n");
@@ -395,16 +396,16 @@ StatusOr<std::string> GetPacketIoMessage(const IrP4Info& info) {
         const std::string meta_name,
         P4NameToProtobufFieldName(meta.metadata().name(), kP4MetaField));
     absl::StrAppend(
-&result, "    string ", meta_name, " = ", meta.metadata().id(), "; // ",
+        &result, "    string ", meta_name, " = ", meta.metadata().id(), "; // ",
         GetFormatComment(meta.format(), meta.metadata().bitwidth()), "\n");
   }
   absl::StrAppend(&result, "  }\n");
   absl::StrAppend(&result, "  Metadata metadata = 2;\n");
   absl::StrAppend(&result, "}");
- 
+
   return result;
 }
- 
+
 bool IsActionUnused(const IrActionDefinition& action,
                     const std::vector<IrTableDefinition>& tables) {
   for (const auto& table : tables) {
@@ -415,27 +416,27 @@ bool IsActionUnused(const IrActionDefinition& action,
   }
   return true;
 }
- 
+
 }  // namespace
- 
+
 StatusOr<std::string> IrP4InfoToPdProto(const IrP4Info& info,
                                         const PdGenOptions& options) {
   std::string result = "";
- 
+
   // Header comment.
   absl::StrAppend(&result, R"(
 // P4 PD proto
- 
+
 // NOTE: This file is automatically created from the P4 program using the pdgen
 //       library in p4_pdpi. DO NOT modify it manually.
- 
+
 syntax = "proto3";
 package )" + options.package + R"(;
- 
+
 import "p4/v1/p4runtime.proto";
 import "google/rpc/code.proto";
 import "google/rpc/status.proto";
- 
+
 // PDPI uses the following formats for different kinds of values:
 // - Format::IPV4 for IPv4 addresses (32 bits), e.g., "10.0.0.1".
 // - Format::IPV6 for IPv6 addresses (128 bits) formatted according to RFC 5952.
@@ -445,9 +446,9 @@ import "google/rpc/status.proto";
 //   ports.
 // - Format::HEX_STRING for anything else, i.e. bitstrings of arbitrary length.
 //   E.g., "0x01ab".
- 
+
 )");
- 
+
   // General definitions.
   absl::StrAppend(&result, HeaderComment("General definitions"));
   absl::StrAppend(&result, R"(
@@ -456,19 +457,19 @@ message Ternary {
   string value = 1;
   string mask = 2;
 }
- 
+
 // LPM match. The value is formatted according to the Format of the match field.
 message Lpm {
   string value = 1;
   int32 prefix_length = 2;
 }
- 
+
 // Optional match. The value is formatted according to the Format of the match field.
 message Optional {
   string value = 1;
 }
 )");
- 
+
   // Filter by role and sort by ID.
   std::vector<IrTableDefinition> tables;
   for (const auto& [id, table] : Ordered(info.tables_by_id())) {
@@ -483,6 +484,7 @@ message Optional {
   if (tables.empty()) {
     return InvalidArgumentErrorBuilder() << "No tables, cannot generate PD";
   }
+
   // Sort actions by ID.
   std::vector<IrActionDefinition> actions;
   for (const auto& [id, action] : Ordered(info.actions_by_id())) {
@@ -495,14 +497,14 @@ message Optional {
   if (actions.empty()) {
     return InvalidArgumentErrorBuilder() << "No actions, cannot generate PD";
   }
- 
+
   // Table messages.
   absl::StrAppend(&result, HeaderComment("Tables"), "\n");
   for (const auto& table : tables) {
     ASSIGN_OR_RETURN(const auto& table_pd, GetTableMessage(table));
     absl::StrAppend(&result, table_pd, "\n\n");
   }
- 
+
   if (options.multicast_table_field_number.has_value()) {
     absl::StrAppend(&result, R"(
 // Corresponds to `MulticastGroupEntry` in p4runtime.proto. This table is part
@@ -518,10 +520,10 @@ message MulticastGroupTableEntry {
   Action action = 2;
   bytes metadata = 3;
 }
- 
+
 )");
   }
- 
+
   // Action messages.
   absl::StrAppend(&result, HeaderComment("Actions"), "\n");
   for (const auto& action : actions) {
@@ -553,10 +555,10 @@ message ReplicateAction {
     string instance = 2;  // Format::HEX_STRING / 16 bits
   }
 }
- 
+
 )");
   }
- 
+
   // Overall TableEntry message.
   absl::StrAppend(&result, HeaderComment("All tables"), "\n");
   absl::StrAppend(&result, "message TableEntry {\n");
@@ -575,24 +577,24 @@ message ReplicateAction {
   }
   if (options.multicast_table_field_number.has_value()) {
     absl::StrAppend(
-&result,
+        &result,
         absl::Substitute(
             "    MulticastGroupTableEntry multicast_group_table_entry = $0;\n",
             *options.multicast_table_field_number));
   }
   absl::StrAppend(&result, "  }\n");
   absl::StrAppend(&result, "}\n\n");
- 
+
   // TableEntries message (vector of TableEntry).
   absl::StrAppend(&result, "message TableEntries {\n");
   absl::StrAppend(&result, "  repeated TableEntry entries = 1;\n");
   absl::StrAppend(&result, "}\n\n");
- 
+
   // PacketIo message.
   absl::StrAppend(&result, HeaderComment("Packet-IO"), "\n");
   ASSIGN_OR_RETURN(const auto& packetio_pd, GetPacketIoMessage(info));
   absl::StrAppend(&result, packetio_pd, "\n\n");
- 
+
   // Meter messages.
   absl::StrAppend(&result, HeaderComment("Meter configs"));
   absl::StrAppend(&result, R"(
@@ -602,7 +604,7 @@ message BytesMeterConfig {
   // Committed/peak burst size.
   int64 burst_bytes = 2;
 }
- 
+
 message PacketsMeterConfig {
   // Committed/peak information rate (packets per sec).
   int64 packets_per_second = 1;
@@ -610,6 +612,7 @@ message PacketsMeterConfig {
   int64 burst_packets = 2;
 }
 )");
+
   // Counter messages.
   absl::StrAppend(&result, HeaderComment("Counter data"));
   absl::StrAppend(&result, R"(
@@ -617,12 +620,12 @@ message BytesCounterData {
   // Number of bytes.
   int64 byte_count = 1;
 }
- 
+
 message PacketsCounterData {
   // Number of packets.
   int64 packet_count = 1;
 }
- 
+
 message BytesAndPacketsCounterData {
   // Number of bytes.
   int64 byte_count = 1;
@@ -630,7 +633,7 @@ message BytesAndPacketsCounterData {
   int64 packet_count = 2;
 }
 )");
- 
+
   // Meter Counter messages.
   absl::StrAppend(&result, HeaderComment("Meter counter data"));
   absl::StrAppend(&result, R"(
@@ -640,14 +643,14 @@ message MeterBytesCounterData {
   BytesCounterData yellow = 2;
   BytesCounterData red = 3;
 }
- 
+
 message MeterPacketsCounterData {
   // Number of packets per color.
   PacketsCounterData green = 1;
   PacketsCounterData yellow = 2;
   PacketsCounterData red = 3;
 }
- 
+
 message MeterBytesAndPacketsCounterData {
   // Number of bytes and packets per color.
   BytesAndPacketsCounterData green = 1;
@@ -655,7 +658,7 @@ message MeterBytesAndPacketsCounterData {
   BytesAndPacketsCounterData red = 3;
 }
 )");
- 
+
   // RPC messages.
   absl::StrAppend(&result, HeaderComment("RPC messages"));
   absl::StrAppend(&result, R"(
@@ -666,7 +669,7 @@ message Update {
   // Required.
   TableEntry table_entry = 2;
 }
- 
+
 // Describes a Write RPC request.
 message WriteRequest {
   // Required.
@@ -676,7 +679,7 @@ message WriteRequest {
   // Required.
   repeated Update updates = 3;
 }
- 
+
 // Describes the status of a single update in a Write RPC.
 message UpdateStatus {
   // Required.
@@ -684,7 +687,7 @@ message UpdateStatus {
   // Required for non-OK status.
   string message = 2;
 }
- 
+
 // Describes the result of a Write RPC.
 message WriteRpcStatus {
   oneof status {
@@ -692,12 +695,13 @@ message WriteRpcStatus {
     WriteResponse rpc_response = 2;
   }
 }
- 
+
 // Describes a Write RPC response.
 message WriteResponse {
   // Same order as `updates` in `WriteRequest`.
   repeated UpdateStatus statuses = 1;
 }
+
 // Read requests.
 message ReadRequest {
   // Required.
@@ -707,13 +711,13 @@ message ReadRequest {
   // Indicates if meter configs should be read.
   bool read_meter_configs = 3;
 }
- 
+
 // A read request response.
 message ReadResponse {
   // The table entries read by the switch.
   repeated TableEntry table_entries = 1;
 }
- 
+
 // A stream message request
 message StreamMessageRequest {
   oneof update {
@@ -721,13 +725,13 @@ message StreamMessageRequest {
     PacketOut packet = 2;
   }
 }
- 
+
 // A stream error message
 message StreamError {
   google.rpc.Status status = 1;
   PacketOut packet_out = 2;
 }
- 
+
 // A stream message response
 message StreamMessageResponse {
   oneof update {
@@ -739,8 +743,8 @@ message StreamMessageResponse {
   }
 }
 )");
- 
+
   return result;
 }
- 
+
 }  // namespace pdpi

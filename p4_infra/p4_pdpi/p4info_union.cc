@@ -11,10 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include <iostream>
 #include <string>
- 
+
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/flags/usage.h"
@@ -28,31 +28,31 @@
 #include "gutil/gutil/proto.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4_infra/p4_pdpi/p4info_union_lib.h"
- 
+
 ABSL_FLAG(std::string, list_of_p4infos, "",
           "Comma-separated list of P4Infos files (required)");
- 
+
 using ::gutil::PrintTextProto;
 using ::p4::config::v1::P4Info;
- 
+
 constexpr absl::string_view kUsage =
     "--list_of_p4infos=<comma-separated file list>";
- 
+
 int main(int argc, char** argv) {
   absl::SetProgramUsageMessage(
       absl::Substitute("usage: $0 $1", argv[0], kUsage));
   absl::ParseCommandLine(argc, argv);
- 
+
   // Get p4info file name.
   if (absl::GetFlag(FLAGS_list_of_p4infos).empty()) {
     std::cerr
-<< "Missing argument: --list_of_p4infos=<comma-separated file list>"
-<< std::endl;
+        << "Missing argument: --list_of_p4infos=<comma-separated file list>"
+        << std::endl;
     return 1;
   }
   std::vector<std::string> p4info_files =
       absl::StrSplit(absl::GetFlag(FLAGS_list_of_p4infos), ',');
- 
+
   // Generate p4infos from file names.
   std::vector<P4Info> p4infos;
   for (const auto& p4info_file : p4info_files) {
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
       return 1;
     }
   }
- 
+
   auto p4info_union = pdpi::UnionP4info(p4infos);
   if (!p4info_union.ok()) {
     std::cerr << absl::Substitute("Failed to union p4info files:'$0'\n",

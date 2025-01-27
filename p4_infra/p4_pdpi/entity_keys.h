@@ -11,33 +11,33 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #ifndef PINS_P4_INFRA_P4_PDPI_ENTITY_KEYS_H_
 #define PINS_P4_INFRA_P4_PDPI_ENTITY_KEYS_H_
- 
+
 #include <algorithm>
 #include <ostream>
 #include <string>
 #include <string_view>
 #include <vector>
- 
+
 #include "absl/hash/hash.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "gutil/gutil/status.h"
 #include "p4/v1/p4runtime.pb.h"
- 
+
 namespace pdpi {
- 
+
 class TableEntryKey {
-public:
+ public:
   TableEntryKey(const p4::v1::TableEntry& entry);
   TableEntryKey() = default;
- 
+
   template <typename H>
   friend H AbslHashValue(H h, const TableEntryKey& key);
- 
+
   // Only intended for debugging purposes.  Do not assume output consistency.
   template <typename Sink>
   friend inline void AbslStringify(Sink& sink, const TableEntryKey& key) {
@@ -51,24 +51,24 @@ public:
                                   const TableEntryKey key) {
     return stream << absl::StrCat(key);
   }
- 
+
   bool operator==(const TableEntryKey& other) const;
   bool operator!=(const TableEntryKey& other) const;
   bool operator<(const TableEntryKey& other) const;
- 
+
   // Returns vector of non-key field paths in PI TableEntry proto.
   static std::vector<std::string_view> NonKeyFieldPaths();
- 
-private:
+
+ private:
   uint32_t table_id_;
   int32_t priority_;
   std::vector<p4::v1::FieldMatch> matches_;
 };
- 
+
 template <typename H>
 H AbslHashValue(H h, const TableEntryKey& key) {
   h = H::combine(std::move(h), key.table_id_, key.priority_);
- 
+
   for (const auto& field : key.matches_) {
     // Since protobufs yield a default value for an unset field and since {
     // exact, ternary, lpm, range, optional } are all part of the oneof
@@ -82,18 +82,18 @@ H AbslHashValue(H h, const TableEntryKey& key) {
   }
   return h;
 }
- 
+
 // PacketReplicationEntryKey provides a unique key that can be used in maps
 // that will hold the PacketReplicationEngineEntry entity type.
 class PacketReplicationEntryKey {
-public:
+ public:
   explicit PacketReplicationEntryKey(
       const p4::v1::PacketReplicationEngineEntry& entry);
   PacketReplicationEntryKey() = default;
- 
+
   template <typename H>
   friend H AbslHashValue(H h, const PacketReplicationEntryKey& key);
- 
+
   // Only intended for debugging purposes.  Do not assume output consistency.
   template <typename Sink>
   friend inline void AbslStringify(Sink& sink,
@@ -104,35 +104,35 @@ public:
                                   const PacketReplicationEntryKey key) {
     return stream << absl::StrCat(key);
   }
- 
+
   bool operator==(const PacketReplicationEntryKey& other) const;
   bool operator!=(const PacketReplicationEntryKey& other) const;
   bool operator<(const PacketReplicationEntryKey& other) const;
- 
-private:
+
+ private:
   p4::v1::PacketReplicationEngineEntry::TypeCase replication_type_;
   uint32_t id_ = 0;
 };
- 
+
 template <typename H>
 H AbslHashValue(H h, const PacketReplicationEntryKey& key) {
   h = H::combine(std::move(h), key.id_);
   return h;
 }
- 
+
 // EntityKey is a top-level unique key that can be used in maps that need to
 // store P4 entries that may hold different entity types.
 // Currently, we only need to support PacketReplicationEngineEntry and
 // TableEntry, but the oneof structure supports many types.
 // See the P4 V1 p4runtime.proto for a list of the available entity types.
 class EntityKey {
-public:
+ public:
   static absl::StatusOr<EntityKey> MakeEntityKey(const p4::v1::Entity& entity);
   explicit EntityKey(const p4::v1::TableEntry& entry);
- 
+
   template <typename H>
   friend H AbslHashValue(H h, const EntityKey& key);
- 
+
   // Only intended for debugging purposes.  Do not assume output consistency.
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const EntityKey& key) {
@@ -147,7 +147,7 @@ public:
   friend std::ostream& operator<<(std::ostream& stream, const EntityKey key) {
     return stream << absl::StrCat(key);
   }
- 
+
   bool operator==(const EntityKey& other) const;
   bool operator!=(const EntityKey& other) const;
   bool operator<(const EntityKey& other) const;
@@ -155,17 +155,17 @@ public:
   // create an empty TableEntryKey.
   EntityKey();
   ~EntityKey() = default;
- 
-private:
+
+ private:
   explicit EntityKey(const p4::v1::Entity& entity);
   std::variant<TableEntryKey, PacketReplicationEntryKey> key_;
 };
- 
+
 template <typename H>
 H AbslHashValue(H h, const EntityKey& key) {
   return AbslHashValue(std::move(h), key.key_);
 }
- 
+
 }  // namespace pdpi
- 
+
 #endif  // PINS_P4_INFRA_P4_PDPI_ENTITY_KEYS_H_

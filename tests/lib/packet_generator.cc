@@ -36,12 +36,12 @@
 #include "glog/logging.h"
 #include "gutil/gutil/proto.h"
 #include "gutil/gutil/status.h"
-#include "p4_pdpi/netaddr/ipv4_address.h"
-#include "p4_pdpi/netaddr/ipv6_address.h"
-#include "p4_pdpi/netaddr/mac_address.h"
-#include "p4_pdpi/packetlib/bit_widths.h"
-#include "p4_pdpi/packetlib/packetlib.h"
-#include "p4_pdpi/packetlib/packetlib.pb.h"
+#include "p4_infra/p4_pdpi/netaddr/ipv4_address.h"
+#include "p4_infra/p4_pdpi/netaddr/ipv6_address.h"
+#include "p4_infra/p4_pdpi/netaddr/mac_address.h"
+#include "p4_infra/p4_pdpi/packetlib/bit_widths.h"
+#include "p4_infra/p4_pdpi/packetlib/packetlib.h"
+#include "p4_infra/p4_pdpi/packetlib/packetlib.pb.h"
 
 namespace pins_test {
 namespace packetgen {
@@ -403,13 +403,11 @@ void SetFieldValue(Field field, int value, packetlib::Packet& packet) {
           packetlib::IpFlowLabel(flow_label));
     } break;
     case Field::kL4SrcPort:
-      // TODO: Re-allow PTP ports when traffic forwards.
-      if (value > 318) value += 2;  // Skip PTP ports 319 & 320.
+      if (value > 318) value += 2;
       UdpHeader(packet).set_source_port(packetlib::UdpPort(value));
       break;
     case Field::kL4DstPort:
-      // TODO: Re-allow PTP ports when traffic forwards.
-      if (value > 318) value += 2;  // Skip PTP ports 319 & 320.
+      if (value > 318) value += 2;
       // TODO: Reserved ports in packetlib will generate invalid
       // packets.
       if (value > 999) value += 1;   // Skip PSP port 1000.
@@ -623,8 +621,6 @@ int Range(Field field, IpType ip_type) {
       return BitwidthToInt(4);
     case Field::kL4SrcPort:
     case Field::kL4DstPort:
-      // TODO: Re-allow PTP ports when traffic forwards.
-      // Reserve PTP ports 319 & 320.
       // TODO: Re-allow PSP (1000) and IpFix (4739) when this
       // library generates packets below L4.
       return BitwidthToInt(packetlib::kUdpPortBitwidth) - 4;

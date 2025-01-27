@@ -11,13 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/netaddr/mac_address.h"
- 
+
 #include <cstdint>
 #include <string>
 #include <vector>
- 
+
 #include "absl/strings/ascii.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -25,15 +25,15 @@
 #include "gutil/gutil/status_matchers.h"
 #include "p4_infra/p4_pdpi/netaddr/network_address.h"
 #include "p4_infra/p4_pdpi/string_encodings/safe.h"
- 
+
 namespace netaddr {
 namespace {
- 
+
 using ::gutil::IsOk;
 using ::gutil::IsOkAndHolds;
 using ::testing::Eq;
 using ::testing::Not;
- 
+
 // An MAC address, in 3 different representations.
 struct MacTriple {
   // Cannonical representation
@@ -44,10 +44,10 @@ struct MacTriple {
   std::string byte_string;
   MacAddress mac;
 };
- 
+
 std::vector<MacTriple> CorrectMacTriples() {
   std::vector<MacTriple> triples;
- 
+
   triples.push_back(MacTriple{
       .canonical_notation = "00:00:00:00:00:00",
       .alternative_notations = {"00:00:00:00:0:0", "0:0:0:0:0:0"},
@@ -67,25 +67,25 @@ std::vector<MacTriple> CorrectMacTriples() {
       .byte_string = pdpi::SafeString({0xff, 0xff, 0xff, 0xff, 0xff, 0xff}),
       .mac = MacAddress::AllOnes(),
   });
- 
+
   return triples;
 }
- 
+
 TEST(MacAddressTest, ConversionsCorrect) {
   for (auto [canonical_notation, alternative_notations, byte_string, mac] :
        CorrectMacTriples()) {
     EXPECT_THAT(mac.ToPaddedByteString(), byte_string);
     EXPECT_THAT(mac.ToString(), canonical_notation);
     EXPECT_THAT(MacAddress::OfString(canonical_notation), IsOkAndHolds(Eq(mac)))
-<< canonical_notation;
+        << canonical_notation;
     alternative_notations.push_back(absl::AsciiStrToUpper(canonical_notation));
     for (const auto& notation : alternative_notations) {
       EXPECT_THAT(MacAddress::OfString(notation), IsOkAndHolds(Eq(mac)))
-<< notation;
+          << notation;
     }
   }
 }
- 
+
 std::vector<std::string> IncorrectMacStrings() {
   return std::vector<std::string>{
       // Nonsense.
@@ -106,19 +106,19 @@ std::vector<std::string> IncorrectMacStrings() {
       "11:22:33:44:55:66:77:88:99",
   };
 }
- 
+
 TEST(MacAddressTest, Ipv6AddressOfString_NegativeTests) {
   for (std::string mac_str : IncorrectMacStrings()) {
     EXPECT_THAT(MacAddress::OfString(mac_str), Not(IsOk()))
-<< "mac_str = " << mac_str;
+        << "mac_str = " << mac_str;
   }
 }
- 
+
 struct MacAndCoresspondingLinkLocalIpv6Address {
   std::string mac;
   std::string ip;
 };
- 
+
 std::vector<MacAndCoresspondingLinkLocalIpv6Address>
 ValidMacAndCorrespondLinkLocalIpv6Addresses() {
   // Cases can be generated using tools such as https://ben.akrin.com/?p=1347.
@@ -129,7 +129,7 @@ ValidMacAndCorrespondLinkLocalIpv6Addresses() {
       {"01:23:45:67:89:ab", "fe80::323:45ff:fe67:89ab"},
   };
 }
- 
+
 std::vector<std::string> InvalidLinkLocalIpv6Addresses() {
   std::vector<std::string> result = {
       "::",
@@ -151,7 +151,7 @@ std::vector<std::string> InvalidLinkLocalIpv6Addresses() {
   }
   return result;
 }
- 
+
 // Also covers OfInterfaceId.
 TEST(MacAddressTest, OfLinkLocalIpv6Address) {
   for (auto& [mac_str, ip_str] :
@@ -163,17 +163,17 @@ TEST(MacAddressTest, OfLinkLocalIpv6Address) {
     EXPECT_THAT(extracted_mac, Eq(mac)) << " where ip = " << ip;
   }
 }
- 
+
 // Also covers OfInterfaceId.
 TEST(MacAddressTest, OfLinkLocalIpv6AddressRejectsInvalidAddresses) {
   for (auto& ip_str : InvalidLinkLocalIpv6Addresses()) {
     ASSERT_OK_AND_ASSIGN(auto ip, Ipv6Address::OfString(ip_str));
     EXPECT_THAT(MacAddress::OfLinkLocalIpv6Address(ip),
                 gutil::StatusIs(absl::StatusCode::kInvalidArgument))
-<< "where ip = " << ip;
+        << "where ip = " << ip;
   }
 }
- 
+
 // Also covers ToInterfaceId.
 TEST(MacAddressTest, ToLinkLocalIpv6Address) {
   // Cases can be generated using tools such as https://ben.akrin.com/?p=1347.
@@ -183,13 +183,13 @@ TEST(MacAddressTest, ToLinkLocalIpv6Address) {
       {"ff:ff:ff:ff:ff:ff", "fe80::fdff:ffff:feff:ffff"},
       {"01:23:45:67:89:ab", "fe80::323:45ff:fe67:89ab"},
   };
- 
+
   for (auto& [mac_str, ip_str] : test_cases) {
     ASSERT_OK_AND_ASSIGN(auto mac, MacAddress::OfString(mac_str));
     ASSERT_OK_AND_ASSIGN(auto ip, Ipv6Address::OfString(ip_str));
     EXPECT_THAT(mac.ToLinkLocalIpv6Address(), Eq(ip)) << " where mac = " << mac;
   }
 }
- 
+
 }  // namespace
 }  // namespace netaddr

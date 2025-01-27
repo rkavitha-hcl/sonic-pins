@@ -11,11 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/string_encodings/readable_byte_string.h"
- 
+
 #include <string>
- 
+
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -23,13 +23,13 @@
 #include "gutil/gutil/status.h"
 #include "p4_infra/p4_pdpi/string_encodings/bit_string.h"
 #include "p4_infra/p4_pdpi/string_encodings/hex_string.h"
- 
+
 namespace pdpi {
- 
+
 absl::StatusOr<std::string> ReadableByteStringToByteString(
     absl::string_view readable_byte_string) {
   BitString result;
- 
+
   // Process line by line
   for (absl::string_view line : absl::StrSplit(readable_byte_string, '\n')) {
     // Skip label
@@ -37,20 +37,20 @@ absl::StatusOr<std::string> ReadableByteStringToByteString(
     if (colon_pos != std::string::npos) {
       line = line.substr(colon_pos + 1);
     }
- 
+
     // Remove comments
     auto hash_pos = line.find('#');
     if (hash_pos != std::string::npos) {
       line = line.substr(0, hash_pos);
     }
- 
+
     line = absl::StripAsciiWhitespace(line);
- 
+
     // Skip empty lines
     if (line.empty()) continue;
- 
+
     const absl::string_view value = line;
- 
+
     // Append value
     if (absl::ConsumePrefix(&line, "0b")) {
       for (uint8_t character : line) {
@@ -61,7 +61,7 @@ absl::StatusOr<std::string> ReadableByteStringToByteString(
           result.AppendBit(1);
         } else {
           return gutil::InvalidArgumentErrorBuilder()
-<< "Invalid character in 0b expression: '" << character << "'";
+                 << "Invalid character in 0b expression: '" << character << "'";
         }
       }
     } else if (absl::ConsumePrefix(&line, "0x")) {
@@ -71,7 +71,7 @@ absl::StatusOr<std::string> ReadableByteStringToByteString(
           result.AppendBits(std::bitset<4>(*char_value));
         } else {
           return gutil::InvalidArgumentErrorBuilder()
-<< "Invalid character in 0x expression: '" << character << "'";
+                 << "Invalid character in 0x expression: '" << character << "'";
         }
       }
     } else if (absl::ConsumePrefix(&line, "\"") &&
@@ -79,11 +79,11 @@ absl::StatusOr<std::string> ReadableByteStringToByteString(
       result.AppendBytes(line);
     } else {
       return gutil::InvalidArgumentErrorBuilder()
-<< "Cannot parse readable byte string value: '" << value << "'";
+             << "Cannot parse readable byte string value: '" << value << "'";
     }
   }
- 
+
   return result.ToByteString();
 }
- 
+
 }  // namespace pdpi

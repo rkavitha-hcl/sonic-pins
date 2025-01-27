@@ -17,19 +17,19 @@
 #define PINS_P4RT_APP_SONIC_APP_DB_MANAGER_H_
 
 #include <cstdint>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "p4/v1/p4runtime.pb.h"
-#include "p4_pdpi/entity_keys.h"
-#include "p4_pdpi/ir.pb.h"
+#include "p4_infra/p4_pdpi/entity_keys.h"
+#include "p4_infra/p4_pdpi/ir.pb.h"
 #include "p4rt_app/sonic/packet_replication_entry_translation.h"
 #include "p4rt_app/sonic/redis_connections.h"
 #include "p4rt_app/sonic/swss_utils.h"
 #include "swss/json.h"
-#include <nlohmann/json.hpp>
 
 namespace p4rt_app {
 namespace sonic {

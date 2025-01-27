@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/p4_runtime_session.h"
- 
+
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
- 
+
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "gmock/gmock.h"
@@ -32,10 +32,10 @@
 #include "p4_infra/p4_pdpi/p4_runtime_session_mocking.h"
 #include "p4_infra/p4_pdpi/testing/test_p4info.h"
 #include "thinkit/mock_switch.h"
- 
+
 namespace pdpi {
 namespace {
- 
+
 using ::gutil::EqualsProto;
 using ::gutil::IsOk;
 using ::gutil::IsOkAndHolds;
@@ -46,12 +46,12 @@ using ::testing::ByMove;
 using ::testing::Eq;
 using ::testing::InSequence;
 using ::testing::Return;
- 
+
 // This is the only action that will work everywhere.
 constexpr p4::v1::SetForwardingPipelineConfigRequest::Action
     kForwardingPipelineAction =
         p4::v1::SetForwardingPipelineConfigRequest::RECONCILE_AND_COMMIT;
- 
+
 // Tests that CreateWithP4InfoAndClearTables creates a P4RuntimeSession,
 // clears all entities currently on the switch (mocked to be two), and
 // pushes a new p4info.
@@ -59,7 +59,7 @@ TEST(P4RuntimeSessionTest, CreateWithP4InfoAndClearTables) {
   p4::config::v1::P4Info p4info = GetTestP4Info();
   const P4RuntimeSessionOptionalArgs metadata;
   thinkit::MockSwitch mock_switch;
- 
+
   // The stub that will be returned when CreateP4RuntimeStub is called on
   // mock_switch.
   auto stub = absl::make_unique<p4::v1::MockP4RuntimeStub>();
@@ -70,13 +70,13 @@ TEST(P4RuntimeSessionTest, CreateWithP4InfoAndClearTables) {
     // Constructs a ReaderWriter mock stream and completes an arbitration
     // handshake.
     MockP4RuntimeSessionCreate(*stub, metadata);
- 
+
     // Mocks a `ClearEntities` call.
     // Pulls the p4info from the switch, then reads a table entry and a
     // multicast entity, deletes them, and reads again ensuring that there are
     // no entities remaining.
     MockClearEntities(*stub, p4info, metadata);
- 
+
     // Mocks a `SetForwardingPipelineConfig` call.
     EXPECT_CALL(*stub, SetForwardingPipelineConfig(
                            _,
@@ -84,50 +84,50 @@ TEST(P4RuntimeSessionTest, CreateWithP4InfoAndClearTables) {
                                metadata, p4info, kForwardingPipelineAction)),
                            _))
         .Times(1);
- 
+
     // Mocks a `CheckNoEntities` call.
     MockCheckNoEntities(*stub, p4info);
   }
- 
+
   // Mocks the first part of a P4RuntimeSession `Create` call.
   EXPECT_CALL(mock_switch, CreateP4RuntimeStub())
       .WillOnce(Return(ByMove(std::move(stub))));
   EXPECT_CALL(mock_switch, DeviceId).WillOnce(Return(kDeviceId));
- 
+
   // The main function call through which everything else should happen.
   ASSERT_OK_AND_ASSIGN(auto session,
                        P4RuntimeSession::CreateWithP4InfoAndClearTables(
                            mock_switch, p4info, metadata));
 }
- 
+
 TEST(ReadPiCounterDataTest, ReturnsNotFoundWhenNoEntriesPresent) {
   const P4RuntimeSessionOptionalArgs metadata;
- 
+
   // Get mock.
   ASSERT_OK_AND_ASSIGN((auto [p4rt_session, mock_p4rt_stub]),
                        MakeP4SessionWithMockStub(metadata));
- 
+
   // Mock that no table entries are installed on the switch.
   SetDefaultReadResponse(mock_p4rt_stub, std::vector<p4::v1::TableEntry>());
- 
+
   // Actual test: without table entries, expect reading counter to fail.
   p4::v1::TableEntry target_entry_signature;
   target_entry_signature.set_table_id(1);
   EXPECT_THAT(ReadPiCounterData(p4rt_session.get(), target_entry_signature),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
+
 TEST(ReadPiCounterDataTest, ReturnsNotFoundWhenNoMatchingEntryPresent) {
   const P4RuntimeSessionOptionalArgs metadata;
- 
+
   // Get mock.
   ASSERT_OK_AND_ASSIGN((auto [p4rt_session, mock_p4rt_stub]),
                        MakeP4SessionWithMockStub(metadata));
- 
+
   // Mock that a table entry is installed on the switch.
   const p4::v1::TableEntry entry = ConstructTableEntry();
   SetDefaultReadResponse(mock_p4rt_stub, {entry});
- 
+
   // Actual test: expect reading counter to fail when there are no matching
   // table entries.
   {
@@ -149,14 +149,14 @@ TEST(ReadPiCounterDataTest, ReturnsNotFoundWhenNoMatchingEntryPresent) {
                 StatusIs(absl::StatusCode::kNotFound));
   }
 }
- 
+
 TEST(ReadPiCounterDataTest, ReturnsCorrectCounterForSignature) {
   const P4RuntimeSessionOptionalArgs metadata;
- 
+
   // Get mock.
   ASSERT_OK_AND_ASSIGN((auto [p4rt_session, mock_p4rt_stub]),
                        MakeP4SessionWithMockStub(metadata));
- 
+
   // Mock that two table entries in the same table are installed on the switch.
   ASSERT_OK_AND_ASSIGN(const auto counter_data1,
                        gutil::ParseTextProto<p4::v1::CounterData>(R"pb(
@@ -190,7 +190,7 @@ TEST(ReadPiCounterDataTest, ReturnsCorrectCounterForSignature) {
   *entry2.mutable_meter_counter_data() = meter_counter_data2;
   SetDefaultReadResponse(mock_p4rt_stub, {entry1, entry2});
 
-// Actual test: counters are read back correctly.
+  // Actual test: counters are read back correctly.
   p4::v1::TableEntry target_entry_signature1 = entry1;
   p4::v1::TableEntry target_entry_signature2 = entry2;
   EXPECT_THAT(ReadPiCounterData(p4rt_session.get(), target_entry_signature1),
@@ -222,15 +222,15 @@ TEST(ReadPiCounterDataTest, ReturnsCorrectCounterForSignature) {
       ReadPiMeterCounterData(p4rt_session.get(), target_entry_signature2),
       IsOkAndHolds(EqualsProto(meter_counter_data2)));
 }
- 
+
 TEST(SetForwardingPipelineConfigTest, BothVersionsProduceSameRequest) {
   const p4::config::v1::P4Info& p4info = GetTestP4Info();
   const P4RuntimeSessionOptionalArgs metadata;
- 
+
   // Get mock.
   ASSERT_OK_AND_ASSIGN((auto [p4rt_session, mock_p4rt_stub]),
                        MakeP4SessionWithMockStub(metadata));
- 
+
   // Mocks two `SetForwardingPipelineConfig` calls without a `p4_device_config`.
   EXPECT_CALL(mock_p4rt_stub,
               SetForwardingPipelineConfig(
@@ -239,7 +239,7 @@ TEST(SetForwardingPipelineConfigTest, BothVersionsProduceSameRequest) {
                       metadata, p4info, kForwardingPipelineAction)),
                   _))
       .Times(2);
- 
+
   // Ensures that both versions of the function send the same proto.
   ASSERT_OK(SetMetadataAndSetForwardingPipelineConfig(
       p4rt_session.get(), kForwardingPipelineAction, p4info));
@@ -247,7 +247,7 @@ TEST(SetForwardingPipelineConfigTest, BothVersionsProduceSameRequest) {
   *config.mutable_p4info() = p4info;
   ASSERT_OK(SetMetadataAndSetForwardingPipelineConfig(
       p4rt_session.get(), kForwardingPipelineAction, config));
- 
+
   std::string p4_device_config = "some_json_device_config";
   // Mocks two `SetForwardingPipelineConfig` calls with a `p4_device_config`.
   EXPECT_CALL(
@@ -258,7 +258,7 @@ TEST(SetForwardingPipelineConfigTest, BothVersionsProduceSameRequest) {
               metadata, p4info, kForwardingPipelineAction, p4_device_config)),
           _))
       .Times(2);
- 
+
   // Ensures that both versions of the function send the same proto.
   ASSERT_OK(SetMetadataAndSetForwardingPipelineConfig(
       p4rt_session.get(), kForwardingPipelineAction, p4info, p4_device_config));
@@ -266,33 +266,33 @@ TEST(SetForwardingPipelineConfigTest, BothVersionsProduceSameRequest) {
   ASSERT_OK(SetMetadataAndSetForwardingPipelineConfig(
       p4rt_session.get(), kForwardingPipelineAction, config));
 }
- 
+
 TEST(ClearTableEntryCountersTest, SendsNoWriteRequestWhenNoCountersAreNonZero) {
   const P4RuntimeSessionOptionalArgs metadata;
- 
+
   // Get mock.
   ASSERT_OK_AND_ASSIGN((auto [p4rt_session, mock_p4rt_stub]),
                        MakeP4SessionWithMockStub(metadata));
- 
+
   // Mock table entry with no non-zero counters in read response.
   p4::v1::TableEntry entry = ConstructTableEntry();
   entry.clear_counter_data();
   entry.clear_meter_counter_data();
   SetDefaultReadResponse(mock_p4rt_stub, {entry});
- 
+
   // Expect no write request.
   EXPECT_CALL(mock_p4rt_stub, Write).Times(0);
   EXPECT_THAT(ClearTableEntryCounters(*p4rt_session), IsOk());
 }
- 
+
 TEST(ClearTableEntryCountersTest,
      SendsModifyRequestsWhenUncoloredOrColoredCountersAreNonZero) {
   const P4RuntimeSessionOptionalArgs metadata;
- 
+
   // Get mock.
   ASSERT_OK_AND_ASSIGN((auto [p4rt_session, mock_p4rt_stub]),
                        MakeP4SessionWithMockStub(metadata));
- 
+
   // Mock 5 table entries with different non-zero counters.
   p4::v1::TableEntry entry1 = ConstructTableEntry();
   p4::v1::TableEntry entry2 = ConstructTableEntry();
@@ -321,7 +321,7 @@ TEST(ClearTableEntryCountersTest,
   entry6.mutable_meter_counter_data()->mutable_red()->set_packet_count(24);
   SetNextReadResponse(mock_p4rt_stub,
                       {entry1, entry2, entry3, entry4, entry5, entry6});
- 
+
   // Expect MODIFY clearing `counter_data` fields.
   EXPECT_CALL(
       mock_p4rt_stub,
@@ -407,6 +407,6 @@ TEST(ClearTableEntryCountersTest,
       });
   EXPECT_THAT(ClearTableEntryCounters(*p4rt_session), IsOk());
 }
- 
+
 }  // namespace
 }  // namespace pdpi

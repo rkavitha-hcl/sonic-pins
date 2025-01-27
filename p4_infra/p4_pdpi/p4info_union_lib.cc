@@ -11,13 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/p4info_union_lib.h"
- 
+
 #include <algorithm>
 #include <string>
 #include <vector>
- 
+
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
@@ -32,7 +32,7 @@
 #include "gutil/gutil/status.h"
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/config/v1/p4types.pb.h"
- 
+
 namespace pdpi {
 namespace {
 // Checks if `infos` contains any field that is not supported by UnionP4Info,
@@ -47,7 +47,7 @@ absl::Status ContainsUnsupportedField(
   }
   return absl::OkStatus();
 }
- 
+
 // Returns the id of the given `p4info.proto` Message (e.g. `Table`, `Action`,
 // etc.) The generic implementation expects the message to contain a preamble,
 // which contains an id. Messages without preambles have specialized
@@ -66,7 +66,7 @@ uint32_t GetId(
 uint32_t GetId(const p4::config::v1::Action::Param& field) {
   return field.id();
 }
- 
+
 // Checks if two messages are equal, returning their diff otherwise.
 absl::optional<std::string> DiffMessages(
     const google::protobuf::Message& message1,
@@ -85,7 +85,7 @@ absl::optional<std::string> DiffMessages(
     return diff_result;
   }
 }
- 
+
 // Asserts that the ids of two fields are equal returning an InternalError
 // otherwise. The error should be unreachable code unless something has gone
 // horribly wrong.
@@ -102,7 +102,7 @@ absl::Status AssertIdsAreEqualForUnioning(const T& field1, const T& field2) {
   }
   return absl::OkStatus();
 }
- 
+
 // Checks that two tables are compatible with one another, returning an
 // InvalidArgumentError otherwise. For tables, their id,
 // const_default_action_id, implementation_id, size, idle_timeout_behavior, and
@@ -116,7 +116,7 @@ absl::Status AssertTableCompatibility(const p4::config::v1::Table& table1,
   // This function should only ever get called if the two tables have the
   // same id.
   RETURN_IF_ERROR(AssertIdsAreEqualForUnioning(table1, table2));
- 
+
   if (auto diff_result =
           DiffMessages(table1, table2,
                        /*ignored_fields=*/
@@ -129,7 +129,7 @@ absl::Status AssertTableCompatibility(const p4::config::v1::Table& table1,
 
   return absl::OkStatus();
 }
- 
+
 // Checks that two preambles are 'compatible' with one another returning an
 // InvalidArgumentError otherwise. For preambles, their id, name, alias, and
 // documentation should be equal.
@@ -143,7 +143,7 @@ absl::Status AssertPreambleCompatibility(
   // This function should only ever get called if the two preambles have the
   // same id.
   RETURN_IF_ERROR(AssertIdsAreEqualForUnioning(preamble1, preamble2));
- 
+
   if (auto diff_result = DiffMessages(
           preamble1, preamble2,
           /*ignored_fields=*/
@@ -152,10 +152,10 @@ absl::Status AssertPreambleCompatibility(
     return absl::InvalidArgumentError(absl::StrCat(
         "preambles were incompatible. Relevant differences: ", *diff_result));
   }
- 
+
   return absl::OkStatus();
 }
- 
+
 // Unions `fields` of type T into `unioned_fields` using their ids (as returned
 // by GetId) as keys to a map of the rest of their contents. Forward declared
 // here because UnionFirstFieldIntoSecondAssertingIdenticalId and
@@ -164,7 +164,7 @@ template <class T>
 absl::Status MapUnionFirstRepeatedFieldIntoSecondById(
     const google::protobuf::RepeatedPtrField<T>& fields,
     google::protobuf::RepeatedPtrField<T>& unioned_fields);
- 
+
 // Unions repeated fields as though they were sets. Barring major changes to PD,
 // this should only be the right thing to do for fields without ids. Otherwise,
 // use MapUnionFirstRepeatedFieldIntoSecondById. This function should only be
@@ -187,7 +187,7 @@ absl::Status SetUnionFirstRepeatedFieldIntoSecond(const T& fields,
   }
   return absl::OkStatus();
 }
- 
+
 // Unions the `PlatformProperties` fields by taking the max of all respective
 // sizes. Returns an InvalidArgumentError if there are unexpected fields.
 absl::Status UnionFirstPlatformPropertiesIntoSecond(
@@ -202,7 +202,7 @@ absl::Status UnionFirstPlatformPropertiesIntoSecond(
   unioned_properties.set_multicast_group_table_max_replicas_per_entry(std::max(
       unioned_properties.multicast_group_table_max_replicas_per_entry(),
       properties.multicast_group_table_max_replicas_per_entry()));
- 
+
   // Ensure only the 3 fields mentioned above are present in either proto.
   std::vector<const google::protobuf::FieldDescriptor*> fields;
   unioned_properties.GetReflection()->ListFields(unioned_properties, &fields);
@@ -228,7 +228,7 @@ absl::Status UnionFirstPlatformPropertiesIntoSecond(
   }
   return absl::OkStatus();
 }
- 
+
 // Unions `PkgInfo`s by combining their names, versions, and PlatformProperties,
 // asserting all other fields are equal and returning InvalidArgumentError if
 // that is not the case.
@@ -242,11 +242,11 @@ absl::Status UnionFirstPkgInfoIntoSecond(
     unioned_info.set_version(absl::StrCat("Versions ", info.version()));
     return absl::OkStatus();
   }
- 
+
   // Take union of `name` and `version` fields.
   absl::StrAppend(unioned_info.mutable_name(), ", ", info.name());
   absl::StrAppend(unioned_info.mutable_version(), ", ", info.version());
- 
+
   // Take union of `platform_properties` field.
   if (info.has_platform_properties() ||
       unioned_info.has_platform_properties()) {
@@ -254,7 +254,7 @@ absl::Status UnionFirstPkgInfoIntoSecond(
         info.platform_properties(),
         *unioned_info.mutable_platform_properties()));
   }
- 
+
   // Ensure all other fields are equal.
   if (auto diff = DiffMessages(
           info, unioned_info,
@@ -263,10 +263,10 @@ absl::Status UnionFirstPkgInfoIntoSecond(
     return absl::InvalidArgumentError(absl::StrCat(
         "PkgInfos are incompatible. Relevant differences: ", *diff));
   }
- 
+
   return absl::OkStatus();
 }
- 
+
 // Unions the annotations as though they were sets. Ignores the
 // annotation_locations (since we don't currently need them) and asserts that
 // there are no structured_annotations (returning an UnimplementedError
@@ -276,7 +276,7 @@ absl::Status UnionFirstPreambleIntoSecondAssertingIdenticalId(
     const p4::config::v1::Preamble& preamble,
     p4::config::v1::Preamble& unioned_preamble) {
   RETURN_IF_ERROR(AssertPreambleCompatibility(preamble, unioned_preamble));
- 
+
   RETURN_IF_ERROR(SetUnionFirstRepeatedFieldIntoSecond(
       preamble.annotations(), *unioned_preamble.mutable_annotations()));
   // `annotation_locations` are ignored.
@@ -295,7 +295,7 @@ absl::Status UnionFirstPreambleIntoSecondAssertingIdenticalId(
                         return absl::StrAppend(out, element.DebugString());
                       })));
   }
- 
+
   return absl::OkStatus();
 }
 
@@ -312,7 +312,7 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   // This function should only ever get called if the two fields have the
   // same id.
   RETURN_IF_ERROR(AssertIdsAreEqualForUnioning(field, unioned_field));
- 
+
   // We fail unless the fields are identical.
   if (auto diff_result = DiffMessages(field, unioned_field);
       diff_result.has_value()) {
@@ -323,7 +323,7 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   }
   return absl::OkStatus();
 }
- 
+
 // Specializes UnionFirstFieldIntoSecondAssertingIdenticalId for tables. Instead
 // of requiring equality for all fields, it unions all repeated fields and the
 // preamble. It asserts that other_properties is unset, giving an
@@ -332,13 +332,14 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
 absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
     const p4::config::v1::Table& table, p4::config::v1::Table& unioned_table) {
   RETURN_IF_ERROR(AssertTableCompatibility(table, unioned_table)).SetPrepend()
-<< absl::Substitute(
+      << absl::Substitute(
              "$0 failed since tables sharing the same id, '$1', were "
              "incompatible: ",
              __func__, GetId(table));
- 
+
   // Use the max size of any table.
   unioned_table.set_size(std::max(unioned_table.size(), table.size()));
+
   // For tables, we union their repeated fields and preambles.
   RETURN_IF_ERROR(UnionFirstPreambleIntoSecondAssertingIdenticalId(
       table.preamble(), *unioned_table.mutable_preamble()));
@@ -359,7 +360,7 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
   }
   return absl::OkStatus();
 }
- 
+
 // Specializes UnionFirstFieldIntoSecondAssertingIdenticalId for actions.
 // Instead of requiring equality for all fields, it unions the preamble. This is
 // done to allow differing annotations for the same action.
@@ -368,10 +369,10 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
     const p4::config::v1::Action& action,
     p4::config::v1::Action& unioned_action) {
   RETURN_IF_ERROR(AssertIdsAreEqualForUnioning(action, unioned_action));
- 
+
   RETURN_IF_ERROR(UnionFirstPreambleIntoSecondAssertingIdenticalId(
       action.preamble(), *unioned_action.mutable_preamble()));
- 
+
   if (auto diff_result =
           DiffMessages(action, unioned_action, /*ignored_fields=*/{"preamble"});
       diff_result.has_value()) {
@@ -380,7 +381,7 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
                          "Relevant differences: $1",
                          action.preamble().id(), *diff_result));
   }
- 
+
   return absl::OkStatus();
 }
 
@@ -393,14 +394,14 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
     p4::config::v1::ActionProfile& unioned_action_profile) {
   RETURN_IF_ERROR(
       AssertIdsAreEqualForUnioning(action_profile, unioned_action_profile));
- 
+
   // For all sizes, use the max size of any action profile.
   unioned_action_profile.set_size(
       std::max(unioned_action_profile.size(), action_profile.size()));
   unioned_action_profile.set_max_group_size(
       std::max(unioned_action_profile.max_group_size(),
                action_profile.max_group_size()));
- 
+
   if (auto diff_result =
           DiffMessages(action_profile, unioned_action_profile,
                        /*ignored_fields=*/{"size", "max_group_size"});
@@ -410,10 +411,9 @@ absl::Status UnionFirstFieldIntoSecondAssertingIdenticalId(
         "Relevant differences: $1",
         action_profile.preamble().id(), *diff_result));
   }
- 
   return absl::OkStatus();
 }
- 
+
 // Unions `fields` of type T into `unioned_fields` using their ids (as returned
 // by GetId) as keys to a map of the rest of their contents.
 template <class T>
@@ -440,7 +440,7 @@ absl::Status MapUnionFirstRepeatedFieldIntoSecondById(
   }
   return absl::OkStatus();
 }
- 
+
 // Unions all type_info in `info` into `unioned_info` using the key of
 // P4TypeInfo::new_types. Return UnimplementedError if fields other than
 // new_types is in type_info of any of `info`
@@ -476,13 +476,13 @@ absl::Status UnionFirstTypeInfoIntoSecond(
   }
   return absl::OkStatus();
 }
- 
+
 }  // namespace
 
 absl::StatusOr<p4::config::v1::P4Info> UnionP4info(
     const std::vector<p4::config::v1::P4Info>& infos) {
   RETURN_IF_ERROR(ContainsUnsupportedField(infos));
- 
+
   p4::config::v1::P4Info unioned_info;
   for (const auto& info : infos) {
     RETURN_IF_ERROR(UnionFirstPkgInfoIntoSecond(
@@ -512,7 +512,7 @@ absl::StatusOr<p4::config::v1::P4Info> UnionP4info(
         info.digests(), *unioned_info.mutable_digests()));
     RETURN_IF_ERROR(UnionFirstTypeInfoIntoSecond(info, unioned_info));
   }
- 
+
   return unioned_info;
 }
 }  // namespace pdpi

@@ -11,19 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/string_encodings/byte_string.h"
- 
+
 #include <string>
- 
+
 namespace pdpi {
- 
+
 std::string ByteStringToP4runtimeByteString(std::string bytes) {
   // Remove leading zeros.
   bytes.erase(0, std::min(bytes.find_first_not_of('\x00'), bytes.size() - 1));
   return bytes;
 }
- 
+
 int GetBitwidthOfByteString(absl::string_view byte_string) {
   for (int i = 0; i < byte_string.size(); ++i) {
     unsigned char c = static_cast<unsigned char>(byte_string[i]);
@@ -37,5 +37,5 @@ int GetBitwidthOfByteString(absl::string_view byte_string) {
   }
   return byte_string.empty() ? 0 : 1;
 }
- 
+
 }  // namespace pdpi

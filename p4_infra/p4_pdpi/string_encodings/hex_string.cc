@@ -11,33 +11,33 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/string_encodings/hex_string.h"
- 
+
 #include <bitset>
 #include <cstdint>
 #include <cstring>
 #include <string>
- 
-#include "absl/log/log.h"
+
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "glog/logging.h"
 #include "gutil/gutil/status.h"
 #include "p4_infra/p4_pdpi/string_encodings/byte_string.h"
 #include "p4_infra/p4_pdpi/string_encodings/safe.h"
- 
+
 namespace pdpi {
- 
+
 // -- Conversions to Hex Strings -----------------------------------------------
- 
+
 std::string ByteStringToHexString(absl::string_view byte_string) {
   return absl::StrCat("0x", absl::BytesToHexString(byte_string));
 }
- 
+
 // -- Conversions from Hex Strings ---------------------------------------------
- 
+
 template <class T>
 absl::StatusOr<T> HexStringTo(absl::string_view hex_string) {
   T result;
@@ -49,40 +49,40 @@ absl::StatusOr<T> HexStringTo(absl::string_view hex_string) {
   std::memcpy(&result, &bits_as_ullong, sizeof(result));
   return result;
 }
- 
+
 absl::StatusOr<int> HexStringToInt(absl::string_view hex_string) {
   return HexStringTo<int>(hex_string);
 }
- 
+
 absl::StatusOr<int32_t> HexStringToInt32(absl::string_view hex_string) {
   return HexStringTo<int32_t>(hex_string);
 }
- 
+
 absl::StatusOr<int64_t> HexStringToInt64(absl::string_view hex_string) {
   return HexStringTo<int64_t>(hex_string);
 }
- 
+
 absl::StatusOr<uint32_t> HexStringToUint32(absl::string_view hex_string) {
   return HexStringTo<uint32_t>(hex_string);
 }
- 
+
 absl::StatusOr<uint64_t> HexStringToUint64(absl::string_view hex_string) {
   return HexStringTo<uint64_t>(hex_string);
 }
- 
+
 absl::StatusOr<std::string> HexStringToByteString(
     absl::string_view hex_string) {
   if (!absl::ConsumePrefix(&hex_string, "0x")) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "missing '0x'-prefix in hexadecimal string: '" << hex_string
-<< "'";
+           << "missing '0x'-prefix in hexadecimal string: '" << hex_string
+           << "'";
   }
   if (hex_string.size() % 2 != 0) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "only hex strings of even length can be converted to byte "
+           << "only hex strings of even length can be converted to byte "
               "strings";
   }
- 
+
   std::string result;
   for (size_t i = 0; i < hex_string.size(); i += 2) {
     const char ith_char = hex_string[i];
@@ -98,9 +98,9 @@ absl::StatusOr<std::string> HexStringToByteString(
   }
   return result;
 }
- 
+
 // -- Conversions between Hex Characters and Digits ----------------------------
- 
+
 char HexDigitToChar(int digit) {
   switch (digit) {
     case 0:
@@ -139,7 +139,7 @@ char HexDigitToChar(int digit) {
   LOG(DFATAL) << "illegal hexadecimal digit: " << digit << "; returning '?'";
   return '?';
 }
- 
+
 absl::StatusOr<int> HexCharToDigit(char hex_char) {
   switch (hex_char) {
     case '0':
@@ -182,7 +182,7 @@ absl::StatusOr<int> HexCharToDigit(char hex_char) {
       return 15;
   }
   return gutil::InvalidArgumentErrorBuilder()
-<< "invalid hexadecimal character: " << hex_char;
+         << "invalid hexadecimal character: " << hex_char;
 }
- 
+
 }  // namespace pdpi

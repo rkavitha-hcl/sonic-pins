@@ -11,12 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/reference_annotations.h"
- 
+
 #include <optional>
 #include <string>
- 
+
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
@@ -29,10 +29,10 @@
 #include "p4_infra/p4_pdpi/ir.pb.h"
 #include "p4_infra/p4_pdpi/testing/test_p4info.h"
 #include "p4rt_app/utils/ir_builder.h"
- 
+
 namespace pdpi {
 namespace {
- 
+
 using ::gutil::EqualsProto;
 using ::gutil::IsOk;
 using ::gutil::IsOkAndHolds;
@@ -45,16 +45,16 @@ using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::IsEmpty;
 using ::testing::Not;
- 
+
 // -- Matchers -----------------------------------------------------------------
- 
+
 MATCHER_P2(HasTableAndField, table, field,
            absl::Substitute("Matches: [table: $0, field: $1]", table, field)) {
   return arg.table == table && arg.field == field;
 }
- 
+
 // -- Parse Annotation Tests ---------------------------------------------------
- 
+
 TEST(ParseAllRefersToAnnotationArgs, ReturnsAllRefersToAnnotations) {
   google::protobuf::RepeatedPtrField<std::string> annotations;
   annotations.Add("@refers_to(a,b)");
@@ -64,7 +64,7 @@ TEST(ParseAllRefersToAnnotationArgs, ReturnsAllRefersToAnnotations) {
               IsOkAndHolds(ElementsAre(HasTableAndField("a", "b"),
                                        HasTableAndField("e", "f"))));
 }
- 
+
 TEST(ParseAllRefersToAnnotationArgs,
      FailsWithRefersToWithMoreThanTwoArguments) {
   google::protobuf::RepeatedPtrField<std::string> annotations;
@@ -72,7 +72,7 @@ TEST(ParseAllRefersToAnnotationArgs,
   EXPECT_THAT(ParseAllRefersToAnnotations(annotations),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 TEST(ParseAllReferencedByAnnotationArgs, ReturnsAllRefersToAnnotations) {
   google::protobuf::RepeatedPtrField<std::string> annotations;
   annotations.Add("@referenced_by(a,b)");
@@ -82,7 +82,7 @@ TEST(ParseAllReferencedByAnnotationArgs, ReturnsAllRefersToAnnotations) {
               IsOkAndHolds(ElementsAre(HasTableAndField("a", "b"),
                                        HasTableAndField("e", "f"))));
 }
- 
+
 TEST(ParseAllReferencedByAnnotationArgs,
      FailsWithReferencedByWithMoreThanTwoArguments) {
   google::protobuf::RepeatedPtrField<std::string> annotations;
@@ -90,9 +90,9 @@ TEST(ParseAllReferencedByAnnotationArgs,
   EXPECT_THAT(ParseAllReferencedByAnnotations(annotations),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 // -- CreateIrTable Tests ------------------------------------------------------
- 
+
 TEST(CreateIrTable, WorksForBuiltInTable) {
   EXPECT_THAT(
       CreateIrTable("builtin::multicast_group_table", GetTestIrP4Info()),
@@ -101,7 +101,7 @@ TEST(CreateIrTable, WorksForBuiltInTable) {
             built_in_table: BUILT_IN_TABLE_MULTICAST_GROUP_TABLE
           )pb"))));
 }
- 
+
 TEST(CreateIrTable, WorksForBuiltInTableWithEmptyP4Info) {
   EXPECT_THAT(CreateIrTable("builtin::multicast_group_table", IrP4Info()),
               IsOkAndHolds(EqualsProto(ParseProtoOrDie<IrTable>(
@@ -109,7 +109,7 @@ TEST(CreateIrTable, WorksForBuiltInTableWithEmptyP4Info) {
                     built_in_table: BUILT_IN_TABLE_MULTICAST_GROUP_TABLE
                   )pb"))));
 }
- 
+
 TEST(CreateIrTable, WorksForP4Table) {
   // Setup: Grab P4 table from test program and populate proto.
   IrP4Info info = GetTestIrP4Info();
@@ -119,49 +119,49 @@ TEST(CreateIrTable, WorksForP4Table) {
   expected_ir_table.mutable_p4_table()->set_table_name(
       table.preamble().alias());
   expected_ir_table.mutable_p4_table()->set_table_id(table.preamble().id());
- 
+
   // Execute and Test:
   EXPECT_THAT(CreateIrTable(table.preamble().alias(), info),
               IsOkAndHolds(EqualsProto(expected_ir_table)));
 }
- 
+
 TEST(CreateIrTable, FailsForUnknownTable) {
   EXPECT_THAT(CreateIrTable("dragon_table", IrP4Info()),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
+
 // -- GetNameOfTable Tests -----------------------------------------------------
- 
+
 TEST(GetNameOfTable, WorksForP4Table) {
   EXPECT_THAT(GetNameOfTable(ParseProtoOrDie<IrTable>(R"pb(
                 p4_table { table_name: "table" }
               )pb")),
               IsOkAndHolds(Eq("table")));
 }
- 
+
 TEST(GetNameOfTable, WorksForIrBuiltInTable) {
   EXPECT_THAT(GetNameOfTable(ParseProtoOrDie<IrTable>(R"pb(
                 built_in_table: BUILT_IN_TABLE_MULTICAST_GROUP_TABLE
               )pb")),
               IsOkAndHolds(Eq("builtin::multicast_group_table")));
 }
- 
+
 TEST(GetNameOfTable, FailsForUnknownIrBuiltInTable) {
   EXPECT_THAT(GetNameOfTable(ParseProtoOrDie<IrTable>(R"pb(
                 built_in_table: BUILT_IN_TABLE_UNSPECIFIED
               )pb")),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 // -- GetNameOfField Tests -----------------------------------------------------
- 
+
 TEST(GetNameOfField, WorksForMatchField) {
   EXPECT_THAT(GetNameOfField(ParseProtoOrDie<IrField>(R"pb(
                 match_field { p4_match_field { field_name: "field" } }
               )pb")),
               IsOkAndHolds(Eq("field")));
 }
- 
+
 TEST(GetNameOfField, WorksForActionField) {
   EXPECT_THAT(
       GetNameOfField(ParseProtoOrDie<IrField>(R"pb(
@@ -171,7 +171,7 @@ TEST(GetNameOfField, WorksForActionField) {
       )pb")),
       IsOkAndHolds(Eq("action.param")));
 }
- 
+
 TEST(GetNameOfField, WorksForBuiltInMatchField) {
   EXPECT_THAT(GetNameOfField(ParseProtoOrDie<IrField>(R"pb(
                 match_field {
@@ -180,7 +180,7 @@ TEST(GetNameOfField, WorksForBuiltInMatchField) {
               )pb")),
               IsOkAndHolds(Eq("multicast_group_id")));
 }
- 
+
 TEST(GetNameOfField, WorksForBuiltInActionField) {
   EXPECT_THAT(GetNameOfField(ParseProtoOrDie<IrField>(R"pb(
                 action_field {
@@ -192,14 +192,15 @@ TEST(GetNameOfField, WorksForBuiltInActionField) {
               )pb")),
               IsOkAndHolds(Eq("replica.instance")));
 }
- 
+
 TEST(GetNameOfField, FailsForUnknownField) {
   EXPECT_THAT(GetNameOfField(ParseProtoOrDie<IrField>(R"pb(
               )pb")),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
+
 // -- GetNameOfActionField -----------------------------------------------------
- 
+
 TEST(GetNameOfAction, WorksForActionField) {
   EXPECT_THAT(
       GetNameOfAction(ParseProtoOrDie<IrActionField>(R"pb(
@@ -207,23 +208,23 @@ TEST(GetNameOfAction, WorksForActionField) {
       )pb")),
       IsOkAndHolds(Eq("action")));
 }
- 
+
 TEST(GetNameOfAction, WorksForValidBuiltInField) {
   EXPECT_THAT(GetNameOfAction(ParseProtoOrDie<IrActionField>(R"pb(
                 built_in_action_field { action: BUILT_IN_ACTION_REPLICA }
               )pb")),
               IsOkAndHolds(Eq("builtin::replica")));
 }
- 
+
 TEST(GetNameOfAction, FailsForInvalidIrBuiltInAction) {
   EXPECT_THAT(GetNameOfAction(ParseProtoOrDie<IrActionField>(R"pb(
                 built_in_action_field { action: BUILT_IN_ACTION_UNSPECIFIED }
               )pb")),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 // -- CreateIrField Tests ------------------------------------------------------
- 
+
 TEST(CreateIrMatchField, WorksForBuiltInMatchField) {
   IrMatchField expected_ir_field;
   expected_ir_field.set_built_in_match_field(
@@ -232,13 +233,13 @@ TEST(CreateIrMatchField, WorksForBuiltInMatchField) {
                                  "multicast_group_id", IrP4Info()),
               IsOkAndHolds(EqualsProto(expected_ir_field)));
 }
- 
+
 TEST(CreateIrMatchField, FailsForUnknownBuiltInMatchField) {
   EXPECT_THAT(CreateIrMatchField("builtin::multicast_group_table",
                                  "dragon_field", IrP4Info()),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 TEST(CreateIrMatchField, WorksForExactMatchField) {
   // Setup: Visit ALL exact match fields mentioned in the p4 info and check
   // that a valid IrMatchField is generated.
@@ -266,7 +267,7 @@ TEST(CreateIrMatchField, WorksForExactMatchField) {
   // Sanity check that at least 1 exact field exists in the P4 info.
   ASSERT_TRUE(was_tested);
 }
- 
+
 TEST(CreateIrMatchField, WorksForOptionalMatchField) {
   // Setup: Visit ALL optional match fields mentioned in the p4 info and check
   // that a valid IrMatchField is generated.
@@ -295,7 +296,7 @@ TEST(CreateIrMatchField, WorksForOptionalMatchField) {
   // Sanity check that at least 1 optional field exists in the P4 info.
   ASSERT_TRUE(was_tested);
 }
- 
+
 TEST(CreateIrMatchField, FailsForNonExactAndNonOptionalMatchField) {
   // Setup: Visit ALL non-exact non-optional match fields mentioned in the
   // p4 info and check that it is not possible to generate an IrMatchField.
@@ -322,24 +323,24 @@ TEST(CreateIrMatchField, FailsForNonExactAndNonOptionalMatchField) {
   // info.
   ASSERT_TRUE(was_tested);
 }
- 
+
 TEST(CreateIrMatchField, FailsForUnknownP4Table) {
   EXPECT_THAT(CreateIrMatchField("dragon_table", "dragon_field", IrP4Info()),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
+
 TEST(CreateIrMatchField, FailsForUnknownP4Field) {
   // Setup: Grab some known table to avoid unknown table failure.
   IrP4Info info = GetTestIrP4Info();
   ASSERT_TRUE(!info.tables_by_name().empty());
   absl::string_view table_name =
       info.tables_by_name().begin()->second.preamble().alias();
- 
+
   // Execute and Test:
   EXPECT_THAT(CreateIrMatchField(table_name, "dragon_field", info),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
+
 TEST(CreateIrActionField, WorksForBuiltInParam) {
   IrActionField expected_ir_field;
   expected_ir_field.mutable_built_in_action_field()->set_action(
@@ -350,13 +351,13 @@ TEST(CreateIrActionField, WorksForBuiltInParam) {
       CreateIrActionField("builtin::replica", "replica.port", IrP4Info()),
       IsOkAndHolds(EqualsProto(expected_ir_field)));
 }
- 
+
 TEST(CreateIrMatchField, FailsForUnknownBuiltInParam) {
   EXPECT_THAT(
       CreateIrActionField("builtin::replica", "dragon_param", IrP4Info()),
       StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 TEST(CreateIrActionField, WorksForActionField) {
   // Setup: Grab an existing action and parameter from the p4 info.
   IrP4Info info = GetTestIrP4Info();
@@ -380,31 +381,32 @@ TEST(CreateIrActionField, WorksForActionField) {
       param.param().name());
   expected_ir_field.mutable_p4_action_field()->set_parameter_id(
       param.param().id());
- 
+
   // Execute and Test:
   EXPECT_THAT(CreateIrActionField(action->preamble().alias(),
                                   param.param().name(), info),
               IsOkAndHolds(EqualsProto(expected_ir_field)));
 }
- 
+
 TEST(CreateIrActionField, FailsForUnknownP4Action) {
   EXPECT_THAT(CreateIrActionField("dragon_action", "dragon_param", IrP4Info()),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
+
 TEST(CreateIrActionField, FailsForUnknownP4Param) {
   // Setup: Grab some known action to avoid unknown action failure.
   IrP4Info info = GetTestIrP4Info();
   ASSERT_TRUE(!info.tables_by_name().empty());
   absl::string_view action_name =
       info.actions_by_name().begin()->second.preamble().alias();
+
   // Execute and Test:
   EXPECT_THAT(CreateIrActionField(action_name, "dragon_param", info),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
+
 // -- FieldIsOptional Test -----------------------------------------------------
- 
+
 TEST(FieldIsOptional, OnlyReturnsTrueIfIrFieldHoldsP4OptionalMatchField) {
   // Under-specified protos return false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb()pb")));
@@ -414,7 +416,7 @@ TEST(FieldIsOptional, OnlyReturnsTrueIfIrFieldHoldsP4OptionalMatchField) {
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb(
     match_field {}
   )pb")));
- 
+
   // Action fields return false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb(
     action_field { p4_action_field {} }
@@ -422,58 +424,58 @@ TEST(FieldIsOptional, OnlyReturnsTrueIfIrFieldHoldsP4OptionalMatchField) {
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb(
     action_field { built_in_action_field {} }
   )pb")));
- 
+
   // Built-in match field returns false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb(
     match_field { built_in_match_field: BUILT_IN_MATCH_FIELD_UNSPECIFIED }
   )pb")));
- 
+
   // Non-optional p4 match field returns false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb(
     match_field { p4_match_field {} }
   )pb")));
- 
+
   // Optional p4 match field returns true.
   EXPECT_TRUE(FieldIsOptional(ParseProtoOrDie<IrField>(R"pb(
     match_field { p4_match_field { is_optional: true } }
   )pb")));
 }
- 
+
 TEST(FieldIsOptional, OnlyReturnsTrueIfIrMatchFieldHoldsP4OptionalMatchField) {
   // Built-in match field returns false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrMatchField>(R"pb(
     built_in_match_field: BUILT_IN_MATCH_FIELD_UNSPECIFIED
   )pb")));
- 
+
   // Non-optional p4 match field returns false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrMatchField>(R"pb(
     p4_match_field {}
   )pb")));
- 
+
   // Optional p4 match field returns true.
   EXPECT_TRUE(FieldIsOptional(ParseProtoOrDie<IrMatchField>(R"pb(
     p4_match_field { is_optional: true }
   )pb")));
 }
- 
+
 TEST(FieldIsOptional, OnlyReturnsTrueIfIrP4MatchFieldHoldsOptionalMatchField) {
   // Non-optional p4 match field returns false.
   EXPECT_FALSE(FieldIsOptional(ParseProtoOrDie<IrP4MatchField>(R"pb(
   )pb")));
- 
+
   // Optional p4 match field returns true.
   EXPECT_TRUE(FieldIsOptional(ParseProtoOrDie<IrP4MatchField>(R"pb(
     is_optional: true
   )pb")));
 }
- 
+
 // -- Reference Annotation Tests -----------------------------------------------
- 
+
 // The implementation of CreateIrFieldFromRefersTo/ReferencedBy uses the
 // CreateIr*Field functions which have thorough coverage above, so this coverage
 // will only include the failures unique to each function and one passing
 // example.
- 
+
 TEST(CreateIrFieldFromRefersTo, WorksForMatchField) {
   // Setup: Grab an existing table and match field from the p4 info such that
   // the field is of type exact and belongs to the table.
@@ -500,7 +502,7 @@ TEST(CreateIrFieldFromRefersTo, WorksForMatchField) {
   expected_ir_field.mutable_match_field()
       ->mutable_p4_match_field()
       ->set_field_id(match_field->match_field().id());
- 
+
   // Execute And Test:
   EXPECT_THAT(CreateIrFieldFromRefersTo(
                   ParsedRefersToAnnotation{
@@ -510,6 +512,7 @@ TEST(CreateIrFieldFromRefersTo, WorksForMatchField) {
                   info),
               IsOkAndHolds(EqualsProto(expected_ir_field)));
 }
+
 TEST(CreateIrFieldFromRefersTo, FailsForAction) {
   // Setup: Grab known action and param for annotation.
   IrP4Info info = GetTestIrP4Info();
@@ -523,7 +526,7 @@ TEST(CreateIrFieldFromRefersTo, FailsForAction) {
   ASSERT_TRUE(action.has_value());
   pdpi::IrActionDefinition::IrActionParamDefinition param =
       action->params_by_name().begin()->second;
- 
+
   // Execute and Test:
   EXPECT_THAT(CreateIrFieldFromRefersTo(
                   ParsedRefersToAnnotation{
@@ -533,7 +536,7 @@ TEST(CreateIrFieldFromRefersTo, FailsForAction) {
                   info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 TEST(CreateIrFieldFromReferencedBy, WorksForBuiltInMatchField) {
   EXPECT_THAT(
       CreateIrFieldFromReferencedBy(
@@ -549,7 +552,7 @@ TEST(CreateIrFieldFromReferencedBy, WorksForBuiltInMatchField) {
             }
           )pb"))));
 }
- 
+
 TEST(CreateIrFieldFromReferencedBy, FailsForUnknownBuiltInField) {
   EXPECT_THAT(CreateIrFieldFromReferencedBy(
                   ParsedReferencedByAnnotation{
@@ -559,13 +562,13 @@ TEST(CreateIrFieldFromReferencedBy, FailsForUnknownBuiltInField) {
                   IrP4Info()),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
- 
+
 TEST(CreateIrFieldFromReferencedBy, FailsForMatchField) {
   // Setup: Grab an existing table and match field from the p4 info such that
   // the field is of type exact and belongs to the table.
   IrP4Info info = GetTestIrP4Info();
   ASSERT_TRUE(!info.tables_by_name().empty());
- 
+
   std::optional<pdpi::IrTableDefinition> table;
   std::optional<pdpi::IrMatchFieldDefinition> match_field;
   for (const auto& [name, table_def] : info.tables_by_name()) {
@@ -579,7 +582,7 @@ TEST(CreateIrFieldFromReferencedBy, FailsForMatchField) {
     }
   }
   ASSERT_TRUE(table.has_value() && match_field.has_value());
- 
+
   // Execute and Test:
   EXPECT_THAT(CreateIrFieldFromReferencedBy(
                   ParsedReferencedByAnnotation{
@@ -589,12 +592,12 @@ TEST(CreateIrFieldFromReferencedBy, FailsForMatchField) {
                   info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 TEST(CreateIrFieldFromReferencedBy, FailsWhenReferencedByAction) {
   // Setup: Grab an existing action and parameter from the p4 info.
   IrP4Info info = GetTestIrP4Info();
   ASSERT_TRUE(!info.tables_by_name().empty());
- 
+
   std::optional<pdpi::IrActionDefinition> action;
   for (const auto& [name, action_def] : info.actions_by_name()) {
     if (!action_def.params_by_name().empty()) {
@@ -604,7 +607,7 @@ TEST(CreateIrFieldFromReferencedBy, FailsWhenReferencedByAction) {
   ASSERT_TRUE(action.has_value());
   pdpi::IrActionDefinition::IrActionParamDefinition param =
       action->params_by_name().begin()->second;
- 
+
   // Execute and Test:
   EXPECT_THAT(CreateIrFieldFromReferencedBy(
                   ParsedReferencedByAnnotation{
@@ -614,13 +617,13 @@ TEST(CreateIrFieldFromReferencedBy, FailsWhenReferencedByAction) {
                   info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 // -- ParseIrTableReferencesTest ------------------------------------------
- 
+
 TEST(ParseIrTableReferences, CreateEmptyListWhenNoReferenceAnnotationsExist) {
   EXPECT_THAT(ParseIrTableReferences(IrP4Info()), IsOkAndHolds(IsEmpty()));
 }
- 
+
 TEST(ParseIrTableReferences, SucceedsWithMatchToMatchReference) {
   // Setup: Create p4 info.
   auto src_table =
@@ -644,7 +647,7 @@ TEST(ParseIrTableReferences, SucceedsWithMatchToMatchReference) {
                            )pb",
                            pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(src_table).table(dst_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(
       ParseIrTableReferences(info),
@@ -668,6 +671,7 @@ TEST(ParseIrTableReferences, SucceedsWithMatchToMatchReference) {
             }
           )pb")))));
 }
+
 TEST(ParseIrTableReferences, SucceedsWithOptionalMatchToMatchReference) {
   // Setup: Create p4 info.
   auto src_table =
@@ -690,7 +694,7 @@ TEST(ParseIrTableReferences, SucceedsWithOptionalMatchToMatchReference) {
                              id: 1 name: "dst_match_field" match_type: EXACT
                            )pb",
                            pdpi::Format::STRING)();
- 
+
   // Execute and Test:
   EXPECT_THAT(
       ParseIrTableReferences(
@@ -719,7 +723,7 @@ TEST(ParseIrTableReferences, SucceedsWithOptionalMatchToMatchReference) {
             }
           )pb")))));
 }
- 
+
 TEST(ParseIrTableReferences, SucceedsWithActionToMatchReference) {
   // Setup: Create p4 info.
   auto src_action =
@@ -751,7 +755,7 @@ TEST(ParseIrTableReferences, SucceedsWithActionToMatchReference) {
                            pdpi::Format::STRING)();
   auto info =
       IrP4InfoBuilder().action(src_action).table(src_table).table(dst_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(
       ParseIrTableReferences(info),
@@ -780,7 +784,7 @@ TEST(ParseIrTableReferences, SucceedsWithActionToMatchReference) {
             }
           )pb")))));
 }
- 
+
 TEST(ParseIrTableReferences, SucceedsWithMatchToBuiltInReference) {
   // Setup: Create p4 info.
   auto src_table =
@@ -796,7 +800,7 @@ TEST(ParseIrTableReferences, SucceedsWithMatchToBuiltInReference) {
               )pb",
               pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(src_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(
       ParseIrTableReferences(info),
@@ -820,6 +824,7 @@ TEST(ParseIrTableReferences, SucceedsWithMatchToBuiltInReference) {
             }
           )pb")))));
 }
+
 TEST(ParseIrTableReferences, SucceedsWithActionToBuiltInReference) {
   // Setup: Create p4 info.
   auto src_action =
@@ -842,7 +847,7 @@ TEST(ParseIrTableReferences, SucceedsWithActionToBuiltInReference) {
                            pdpi::Format::STRING)
                        .entry_action(src_action)();
   auto info = IrP4InfoBuilder().action(src_action).table(src_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(
       ParseIrTableReferences(info),
@@ -871,7 +876,7 @@ TEST(ParseIrTableReferences, SucceedsWithActionToBuiltInReference) {
             }
           )pb")))));
 }
- 
+
 TEST(ParseIrTableReferences, SucceedsWithBuiltInToMatchReference) {
   // Setup: Create p4 info.
   auto dst_table =
@@ -887,7 +892,7 @@ TEST(ParseIrTableReferences, SucceedsWithBuiltInToMatchReference) {
               )pb",
               pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(dst_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(
       ParseIrTableReferences(info),
@@ -916,7 +921,7 @@ TEST(ParseIrTableReferences, SucceedsWithBuiltInToMatchReference) {
             }
           )pb")))));
 }
- 
+
 TEST(ParseIrTableReferences, FailsWithRefersToUnknown) {
   // Setup: Create p4 info.
   auto src_table =
@@ -932,13 +937,12 @@ TEST(ParseIrTableReferences, FailsWithRefersToUnknown) {
               )pb",
               pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(src_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kNotFound));
 }
- 
-TEST(ParseIrTableReferences, FailsWithRefersToAction) {
+
   // Setup: Create p4 info.
   auto dst_action = IrActionDefinitionBuilder()
                         .preamble(R"pb(id: 1)pb")
@@ -959,12 +963,12 @@ TEST(ParseIrTableReferences, FailsWithRefersToAction) {
                            )pb",
                            pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().action(dst_action).table(src_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 TEST(ParseIrTableReferences, FailsWithReferencedByOnAction) {
   // Setup: Create p4 info.
   auto dst_action =
@@ -986,11 +990,12 @@ TEST(ParseIrTableReferences, FailsWithReferencedByOnAction) {
                            )pb",
                            pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().action(dst_action).table(src_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
+
 TEST(ParseIrTableReferences, FailsWithMatchFieldReferenceToOptional) {
   // Setup: Create p4 info.
   auto src_table =
@@ -1014,13 +1019,13 @@ TEST(ParseIrTableReferences, FailsWithMatchFieldReferenceToOptional) {
                 id: 1 name: "dst_match_field" match_type: OPTIONAL
               )pb",
               pdpi::Format::STRING)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(
                   IrP4InfoBuilder().table(src_table).table(dst_table)()),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 TEST(ParseIrTableReferences, FailsWithP4ActionFieldReferenceToOptional) {
   // Setup: Create p4 info.
   auto src_action =
@@ -1053,13 +1058,13 @@ TEST(ParseIrTableReferences, FailsWithP4ActionFieldReferenceToOptional) {
               pdpi::Format::STRING)();
   auto info =
       IrP4InfoBuilder().action(src_action).table(src_table).table(dst_table)();
- 
+
   // Execute and Test:
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 TEST(ParseIrTableReferences, FailsWithBuiltInFieldReferenceToOptional) {
   // Setup: Create p4 info.
   auto dst_table =
@@ -1075,7 +1080,7 @@ TEST(ParseIrTableReferences, FailsWithBuiltInFieldReferenceToOptional) {
               )pb",
               pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(dst_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kUnimplemented));
@@ -1104,10 +1109,11 @@ TEST(ParseIrTableReferences, FailsWithTypeTernary) {
                            )pb",
                            pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(src_table).table(dst_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info), Not(IsOk()));
 }
+
 TEST(ParseIrTableReferences, FailsWithReferenceByThanCanBeRefersTo) {
   // Setup: Create p4 info.
   auto src_table = IrTableDefinitionBuilder()
@@ -1131,12 +1137,12 @@ TEST(ParseIrTableReferences, FailsWithReferenceByThanCanBeRefersTo) {
               )pb",
               pdpi::Format::STRING)();
   auto info = IrP4InfoBuilder().table(src_table).table(dst_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 TEST(ParseIrTableReferences, FailsWithReferenceOnDefaultAction) {
   // Setup: Create p4 info.
   auto src_action =
@@ -1159,11 +1165,11 @@ TEST(ParseIrTableReferences, FailsWithReferenceOnDefaultAction) {
                            pdpi::Format::STRING)
                        .default_only_action(src_action)();
   auto info = IrP4InfoBuilder().action(src_action).table(src_table)();
- 
+
   // Execute and Test:
   EXPECT_THAT(ParseIrTableReferences(info),
               StatusIs(absl::StatusCode::kUnimplemented));
 }
- 
+
 }  // namespace
 }  // namespace pdpi

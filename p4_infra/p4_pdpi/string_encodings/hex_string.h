@@ -11,37 +11,37 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 // This file defines conversion functions to and from hexadecimal strings such
 // as "0xf0a1" to ease working with PD protos.
 // See the documentation of HEX_STRING in ir.proto for details of the encoding.
- 
+
 #ifndef PINS_P4_INFRA_P4_PDPI_HEX_H_
 #define PINS_P4_INFRA_P4_PDPI_HEX_H_
- 
+
 #include <stddef.h>
- 
+
 #include <algorithm>
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <string>
- 
+
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "gutil/gutil/status.h"
- 
+
 namespace pdpi {
- 
+
 // -- Conversions to Hex Strings -----------------------------------------------
- 
+
 template <std::size_t num_bits>
 std::string BitsetToHexString(const std::bitset<num_bits>& bitset);
- 
+
 std::string ByteStringToHexString(absl::string_view byte_string);
- 
+
 // We do not provide direct conversions from integer types; use
 // BitsetToHexString for that purpose, e.g.:
 // ```
@@ -51,9 +51,9 @@ std::string ByteStringToHexString(absl::string_view byte_string);
 //   // Using the implicit std::bitset constructor.
 //   BitsetToHexString<kPortWidth>(port);
 // ```
- 
+
 // -- Conversions from Hex Strings ---------------------------------------------
- 
+
 // The following functions return an error status iff the input string is
 // invalid (i.e., is not a '0x'-prefixed hex string) or the conversion would
 // cause a loss of information (i.e., the input string contains non-zero bits
@@ -61,29 +61,29 @@ std::string ByteStringToHexString(absl::string_view byte_string);
 //
 // Additionally, `HexStringToBitset<num_bits>` returns an error status if
 // num_bits is not in the interval [4 * # hex digits - 3, 4 * # hex digits].
- 
+
 template <std::size_t num_bits>
 absl::StatusOr<std::bitset<num_bits>> HexStringToBitset(
     absl::string_view hex_string);
- 
+
 absl::StatusOr<int> HexStringToInt(absl::string_view hex_string);
 absl::StatusOr<int32_t> HexStringToInt32(absl::string_view hex_string);
 absl::StatusOr<int64_t> HexStringToInt64(absl::string_view hex_string);
 absl::StatusOr<uint32_t> HexStringToUint32(absl::string_view hex_string);
 absl::StatusOr<uint64_t> HexStringToUint64(absl::string_view hex_string);
- 
+
 absl::StatusOr<std::string> HexStringToByteString(absl::string_view hex_string);
- 
+
 // == END OF PUBLIC INTERFACE ==================================================
- 
+
 char HexDigitToChar(int digit);
 absl::StatusOr<int> HexCharToDigit(char hex_char);
- 
+
 template <std::size_t num_bits>
 std::string BitsetToHexString(const std::bitset<num_bits>& bitset) {
   // Each hexadecimal digit is given by 4 bits in the bitset.
   const int num_hex_digits = (num_bits + 3) / 4;  // ceil(num_bits / 4.0)
- 
+
   // Construct hex_string in reverse order, starting from least significant
   // digit.
   std::string hex_string;
@@ -97,21 +97,21 @@ std::string BitsetToHexString(const std::bitset<num_bits>& bitset) {
     }
     hex_string.push_back(HexDigitToChar(ith_digit));
   }
- 
+
   // Reverse string and prepend "0x" prefix
   std::reverse(hex_string.begin(), hex_string.end());
   return absl::StrCat("0x", hex_string);
 }
- 
+
 template <std::size_t num_bits>
 absl::StatusOr<std::bitset<num_bits>> HexStringToAnyLargeEnoughBitset(
     absl::string_view hex_string) {
   if (!absl::ConsumePrefix(&hex_string, "0x")) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "missing '0x'-prefix in hexadecimal string: '" << hex_string
-<< "'";
+           << "missing '0x'-prefix in hexadecimal string: '" << hex_string
+           << "'";
   }
- 
+
   // Compute and set bits from least to most significant.
   std::bitset<num_bits> bitset;
   for (int i = 0; i < hex_string.size(); ++i) {
@@ -128,15 +128,15 @@ absl::StatusOr<std::bitset<num_bits>> HexStringToAnyLargeEnoughBitset(
         bitset.set(k, kth_bit);
       } else {
         return gutil::InvalidArgumentErrorBuilder()
-<< "hex string '0x" << hex_string << "' has bit #" << (k + 1)
-<< " set to 1; conversion to " << num_bits
-<< " bits would lose information";
+               << "hex string '0x" << hex_string << "' has bit #" << (k + 1)
+               << " set to 1; conversion to " << num_bits
+               << " bits would lose information";
       }
     }
   }
   return bitset;
 }
- 
+
 template <std::size_t num_bits>
 absl::StatusOr<std::bitset<num_bits>> HexStringToBitset(
     absl::string_view hex_string) {
@@ -146,14 +146,14 @@ absl::StatusOr<std::bitset<num_bits>> HexStringToBitset(
     const int expected_num_hex_chars = (num_bits + 3) / 4;  // ceil(num_bits/4)
     if (num_hex_chars != expected_num_hex_chars) {
       return gutil::InvalidArgumentErrorBuilder()
-<< "illegal conversion from hex string '" << hex_string << "' to "
-<< num_bits << " bits; expected " << expected_num_hex_chars
-<< " hex digits but got " << num_hex_chars;
+             << "illegal conversion from hex string '" << hex_string << "' to "
+             << num_bits << " bits; expected " << expected_num_hex_chars
+             << " hex digits but got " << num_hex_chars;
     }
   }
   return HexStringToAnyLargeEnoughBitset<num_bits>(hex_string);
 }
- 
+
 }  // namespace pdpi
- 
+
 #endif  // PINS_P4_INFRA_P4_PDPI_HEX_H_

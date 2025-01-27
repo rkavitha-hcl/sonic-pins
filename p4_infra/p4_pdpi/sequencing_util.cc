@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/sequencing_util.h"
- 
+
 #include <cstdint>
 #include <iterator>
 #include <string>
 #include <vector>
- 
+
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -28,10 +28,10 @@
 #include "gutil/gutil/status.h"
 #include "p4/v1/p4runtime.pb.h"
 #include "p4_infra/p4_pdpi/ir.pb.h"
- 
+
 namespace pdpi {
 namespace {
- 
+
 // Returns the match field value for `field_match` as string if `field_match`'s
 // field_match_type is exact or optional. Returns InvalidArgument for other
 // field_match_type.
@@ -48,7 +48,7 @@ absl::StatusOr<std::string> GetExactOrOptionalMatchFieldValue(
                        field_match.field_match_type_case()));
   }
 }
- 
+
 // Returns a vector of ReferredTableEntries that `table_entry`'s match fields
 // refer to.
 absl::StatusOr<std::vector<ReferredTableEntry>>
@@ -58,7 +58,7 @@ EntriesReferredToByTableEntryMatchFields(
       const IrTableDefinition* ir_table_definition,
       gutil::FindPtrOrStatus(info.tables_by_id(), table_entry.table_id()));
   absl::flat_hash_map<uint32_t, ReferredTableEntry> referred_table_entries;
- 
+
   // Iterate through match fields of `table_entry` and incrementally build
   // ReferredTableEntries that `table_entry` can refer to.
   // At the end of the iteration, each value in the k/v pair represents a table
@@ -83,7 +83,7 @@ EntriesReferredToByTableEntryMatchFields(
           });
     }
   }
- 
+
   // Extract accumulated table entries into a vector to return.
   std::vector<ReferredTableEntry> referred_table_entries_vector;
   for (auto& [unused, referred_table_entry] : referred_table_entries) {
@@ -91,7 +91,7 @@ EntriesReferredToByTableEntryMatchFields(
   }
   return referred_table_entries_vector;
 }
- 
+
 // Returns a vector of ReferredTableEntry that `action_params` refers to.
 absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByActionParams(
     const IrP4Info& info, const IrActionDefinition& ir_action_definition,
@@ -104,7 +104,7 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByActionParams(
                                param->param_id()),
         _ << "Failed to extract action definition when creating entries "
              "referred by action: Action param with ID "
-<< param->param_id() << " does not exist.");
+          << param->param_id() << " does not exist.");
     for (const auto& ir_reference : param_definition->references()) {
       referred_table_entries[ir_reference.table_id()].table_id =
           ir_reference.table_id();
@@ -115,7 +115,7 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByActionParams(
           });
     }
   }
- 
+
   // Extract accumulated table entries into a vector to return.
   std::vector<ReferredTableEntry> referred_table_entries_vector;
   for (auto& [unused, referred_table_entry] : referred_table_entries) {
@@ -123,7 +123,7 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByActionParams(
   }
   return referred_table_entries_vector;
 }
- 
+
 // Returns a vector of `ReferredTableEntry`s that `action` refers to based on
 // its action parameters' values and `info` reference fields for the given
 // action.
@@ -137,7 +137,7 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByAction(
                                  action.action().action_id()),
           _ << "Failed to extract action definition when creating entries "
                "referred by action: Action with ID "
-<< action.action().action_id() << " does not exist in IrP4Info.");
+            << action.action().action_id() << " does not exist in IrP4Info.");
       return EntriesReferredToByActionParams(info, *ir_action_definition,
                                              action.action().params());
     }
@@ -151,8 +151,8 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByAction(
                                    action.action().action_id()),
             _ << "Failed to extract action definition when creating entries "
                  "referred by action: Action with ID "
-<< action.action().action_id() << " does not exist in IrP4Info.");
- 
+              << action.action().action_id() << " does not exist in IrP4Info.");
+
         ASSIGN_OR_RETURN(
             std::vector<ReferredTableEntry> referred_entries_by_action,
             EntriesReferredToByActionParams(info, *ir_action_definition,
@@ -170,12 +170,12 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByAction(
           action.type_case()));
   }
 }
- 
+
 }  // namespace
- 
+
 absl::flat_hash_map<ReferenceRelationKey, ReferenceRelation>
 CreateReferenceRelations(const IrP4Info& ir_p4info) {
-    absl::flat_hash_map<ReferenceRelationKey, ReferenceRelation>
+  absl::flat_hash_map<ReferenceRelationKey, ReferenceRelation>
       reference_relations;
   for (const IrMatchFieldReference& ir_reference : ir_p4info.references()) {
     ReferenceRelationKey key{
@@ -186,7 +186,7 @@ CreateReferenceRelations(const IrP4Info& ir_p4info) {
   }
   return reference_relations;
 }
- 
+
 absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByTableEntry(
     const IrP4Info& ir_p4info, const ::p4::v1::TableEntry& table_entry) {
   ASSIGN_OR_RETURN(
@@ -201,7 +201,7 @@ absl::StatusOr<std::vector<ReferredTableEntry>> EntriesReferredToByTableEntry(
       std::make_move_iterator(referred_table_entries_by_actions.end()));
   return referred_table_entries_by_match_fields;
 }
- 
+
 absl::StatusOr<ReferredTableEntry> CreateReferrableTableEntry(
     const IrP4Info& ir_p4info,
     const absl::flat_hash_map<ReferenceRelationKey, ReferenceRelation>&
@@ -215,8 +215,8 @@ absl::StatusOr<ReferredTableEntry> CreateReferrableTableEntry(
       const ReferenceRelation* reference_relation,
       gutil::FindPtrOrStatus(reference_relations, reference_relation_key),
       _ << " while trying to look up ReferenceRelation with key "
-<< absl::StrCat(reference_relation_key));
- 
+        << absl::StrCat(reference_relation_key));
+
   ReferredTableEntry referrable_table_entry = {
       .table_id = table_entry.table_id(),
   };
@@ -235,5 +235,5 @@ absl::StatusOr<ReferredTableEntry> CreateReferrableTableEntry(
   }
   return referrable_table_entry;
 }
- 
+
 }  // namespace pdpi

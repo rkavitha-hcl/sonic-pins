@@ -21,7 +21,7 @@
 #include "absl/strings/string_view.h"
 #include "gflags/gflags.h"
 #include "grpcpp/security/credentials.h"
-#include "p4_pdpi/p4_runtime_session.h"
+#include "p4_infra/p4_pdpi/p4_runtime_session.h"
 
 DEFINE_string(p4rt_server_address, "unix:/sock/p4rt.sock",
               "Server address of the P4RT service.");

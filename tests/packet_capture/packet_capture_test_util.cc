@@ -52,7 +52,7 @@ absl::StatusOr<SutToControlLinks> PickSutToControlDeviceLinkThatsUp(
   links.sut_mtp_port.p4_id = it->second;
 
   auto interface_to_peer_entity_map = gtl::ValueOrDie(
-      gpins::ControlP4rtPortIdBySutP4rtPortIdFromSwitchConfig());
+      pins::ControlP4rtPortIdBySutP4rtPortIdFromSwitchConfig());
 
   for (const auto& interface_to_peer_entity : interface_to_peer_entity_map) {
     if (interface_to_peer_entity.second.GetP4rtEncoding() ==

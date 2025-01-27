@@ -11,9 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include <string>
- 
+
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "gmock/gmock.h"
@@ -23,28 +23,26 @@
 #include "p4_infra/p4_pdpi/packetlib/packetlib.h"
 #include "p4_infra/p4_pdpi/packetlib/packetlib.pb.h"
 #include "p4_infra/p4_pdpi/string_encodings/readable_byte_string.h"
- 
+
 // This file contains tests for manually debugging the packetlib library. If
 // you're adding a new test it should focus on general library behaviors:
 //   * Parsing a byte string
 //   * Update computable fields and validate the packet
-//
-// Users can modify the existing tests to suit their debugging needs, but should
-// revert any changes before submitting their final CL.
+
 namespace packetlib {
 namespace {
- 
+
 using ::testing::IsEmpty;
- 
+
 class PacketlibParsingTest : public testing::Test {
-public:
+ public:
   std::string ByteStringToTest() const {
     auto byte_string =
         pdpi::ReadableByteStringToByteString(readable_byte_string_);
-    CHECK_OK(byte_string);  // CRASH OK
+    CHECK_OK(byte_string.status());  // CRASH OK
     return *byte_string;
   }
- 
+
   const Header::HeaderCase first_header_ = Header::kEthernetHeader;
   const std::string readable_byte_string_ = R"pb(
     # ethernet header
@@ -57,31 +55,31 @@ public:
     payload: 0x00 11 22 33 44 55 66 77 88 99 aa bb cc dd
   )pb";
 };
- 
+
 TEST_F(PacketlibParsingTest, CanParseThePacket) {
   Packet result = ParsePacket(ByteStringToTest(), first_header_);
   EXPECT_THAT(result.reason_not_fully_parsed(), IsEmpty());
   EXPECT_THAT(result.reasons_invalid(), IsEmpty());
 }
- 
+
 TEST_F(PacketlibParsingTest, CanUpdateAndParseThePacket) {
   Packet packet = ParsePacket(ByteStringToTest(), first_header_);
- 
+
   ASSERT_OK(PadPacketToMinimumSize(packet));
   ASSERT_OK(UpdateAllComputedFields(packet));
   packet.clear_reason_not_fully_parsed();
   packet.clear_reasons_invalid();
- 
-  LOG(INFO) << "Updated packet: " << packet;
+
+  LOG(INFO) << "Updated packet: " << packet.ShortDebugString();
   EXPECT_OK(ValidatePacket(packet));
 }
- 
+
 class PacketlibProtoPacketTest : public testing::Test {
-public:
+ public:
   Packet PacketToTest() const {
     return gutil::ParseProtoOrDie<Packet>(packet_proto_string_);
   }
- 
+
   const Header::HeaderCase first_header_ = Header::kEthernetHeader;
   const std::string packet_proto_string_ = R"pb(
     headers {
@@ -94,19 +92,19 @@ public:
     payload: "random payload."
   )pb";
 };
- 
+
 TEST_F(PacketlibProtoPacketTest, IsAValidPacket) {
   EXPECT_OK(ValidatePacket(PacketToTest()));
 }
- 
+
 TEST_F(PacketlibProtoPacketTest, UpdatedPacketIsAValid) {
   Packet packet = PacketToTest();
   ASSERT_OK(PadPacketToMinimumSize(packet));
   ASSERT_OK(UpdateAllComputedFields(packet));
- 
-  LOG(INFO) << "Updated packet: " << packet;
+
+  LOG(INFO) << "Updated packet: " << packet.ShortDebugString();
   EXPECT_OK(ValidatePacket(packet));
 }
- 
+
 }  // namespace
 }  // namespace packetlib

@@ -1,5 +1,6 @@
+
 #include <iostream>
- 
+
 #include "absl/algorithm/container.h"
 #include "absl/container/btree_map.h"
 #include "absl/container/flat_hash_map.h"
@@ -14,59 +15,59 @@
 #include "p4_infra/p4_pdpi/testing/main_p4_pd.pb.h"
 #include "p4_infra/p4_pdpi/testing/test_helper.h"
 #include "p4_infra/p4_pdpi/testing/test_p4info.h"
- 
+
 constexpr absl::string_view kInputBanner =
     "-- INPUT "
     "-----------------------------------------------------------------------\n";
 const absl::string_view kOutputBanner =
     "-- OUTPUT "
     "----------------------------------------------------------------------\n";
- 
+
 // Runs golden file test for CreateReferenceRelations
 void CreateReferenceRelationsTest(const pdpi::IrP4Info& ir_p4info) {
   std::cout << TestHeader("CreateReferenceRelationsTest") << std::endl;
   absl::flat_hash_map<pdpi::ReferenceRelationKey, pdpi::ReferenceRelation>
       reference_relations = pdpi::CreateReferenceRelations(ir_p4info);
- 
+
   std::cout << kInputBanner << "-- IrP4Info's references --" << std::endl;
   for (const pdpi::IrMatchFieldReference& reference : ir_p4info.references()) {
     std::cout << gutil::PrintTextProto(reference);
   }
   std::cout << std::endl;
   std::cout << kOutputBanner << "-- ReferenceRelations --" << std::endl;
- 
+
   // Use btree_map to maintain order and make golden file stable.
   absl::btree_map<pdpi::ReferenceRelationKey, pdpi::ReferenceRelation>
       ordered_reference_relations(reference_relations.begin(),
                                   reference_relations.end());
   for (const auto& [key, reference_relation] : ordered_reference_relations) {
     std::cout << absl::StrCat(key) << ", " << absl::StrCat(reference_relation)
-<< std::endl;
+              << std::endl;
   }
   std::cout << std::endl;
 }
- 
+
 // Runs golden file test for EntriesReferredToByTableEntry function.
 void EntriesReferredToByTableEntryTest(absl::string_view test_name,
                                        absl::string_view pd_string) {
   std::cout << TestHeader(absl::StrCat("EntriesReferredToByTableEntryTest: ",
                                        test_name))
-<< std::endl;
- 
+            << std::endl;
+
   pdpi::TableEntry pd_entry =
       gutil::ParseProtoOrDie<pdpi::TableEntry>(pd_string);
- 
+
   const auto pi_table_entry = pdpi::PartialPdTableEntryToPiTableEntry(
       pdpi::GetTestIrP4Info(), pd_entry);
   CHECK(pi_table_entry.ok());  // Crash ok
- 
+
   std::cout << kInputBanner << "-- PD table entry --\n";
   std::cout << gutil::PrintTextProto(pd_entry) << std::endl;
- 
+
   auto referred_table_entries = pdpi::EntriesReferredToByTableEntry(
       pdpi::GetTestIrP4Info(), *pi_table_entry);
   CHECK(referred_table_entries.ok());  // Crash ok
- 
+
   // Since ReferredTableEntry has less than operator, we can sort and maintain
   // golden file stability.
   absl::c_sort(*referred_table_entries);
@@ -79,7 +80,7 @@ void EntriesReferredToByTableEntryTest(absl::string_view test_name,
   }
   std::cout << std::endl;
 }
- 
+
 void CreateReferrableTableEntryTest(
     absl::string_view test_name, const pdpi::IrP4Info& ir_p4info,
     const absl::flat_hash_map<pdpi::ReferenceRelationKey,
@@ -87,27 +88,27 @@ void CreateReferrableTableEntryTest(
     absl::string_view pd_string) {
   std::cout << TestHeader(
                    absl::StrCat("CreateReferrableTableEntryTest: ", test_name))
-<< std::endl;
- 
+            << std::endl;
+
   pdpi::TableEntry pd_entry =
       gutil::ParseProtoOrDie<pdpi::TableEntry>(pd_string);
- 
+
   const auto pi_table_entry =
       pdpi::PartialPdTableEntryToPiTableEntry(ir_p4info, pd_entry);
- 
+
   CHECK_OK(pi_table_entry.status())  // Crash ok
-<< "Unable to convert table entry from PD to PI: "
-<< pi_table_entry.status().ToString();
- 
+      << "Unable to convert table entry from PD to PI: "
+      << pi_table_entry.status().ToString();
+
   std::cout << kInputBanner << "-- PD table entry --" << std::endl;
   std::cout << gutil::PrintTextProto(pd_entry);
- 
+
   absl::StatusOr<pdpi::ReferredTableEntry> referrable_table_entry =
       pdpi::CreateReferrableTableEntry(ir_p4info, reference_relations,
                                        *pi_table_entry);
- 
+
   std::cout << kOutputBanner << "-- ReferredTableEntry or failure status --"
-<< std::endl;
+            << std::endl;
   if (!referrable_table_entry.ok()) {
     std::cout << referrable_table_entry.status().ToString() << std::endl;
     return;
@@ -115,7 +116,7 @@ void CreateReferrableTableEntryTest(
     std::cout << absl::StrCat(*referrable_table_entry) << std::endl;
   }
 }
- 
+
 int main(int argc, char** argv) {
   std::cout << "Golden file test for utils used for reachability analysis.\n"
                "Note, std::cout doesn't work nicely with hex values: certain "
@@ -163,11 +164,11 @@ int main(int argc, char** argv) {
           action { do_thing_4 {} }
         }
       )pb");
- 
+
   absl::flat_hash_map<pdpi::ReferenceRelationKey, pdpi::ReferenceRelation>
       default_reference_relations =
           pdpi::CreateReferenceRelations(pdpi::GetTestIrP4Info());
- 
+
   // -- CreateReferredTableEntry test.
   CreateReferrableTableEntryTest(
       "Non-referred-to table entry will not generate ReferredTableEntry",
@@ -183,7 +184,7 @@ int main(int argc, char** argv) {
           }
         }
       )pb");
- 
+
   CreateReferrableTableEntryTest(
       "Referred-to table entry will generate ReferredTableEntry",
       pdpi::GetTestIrP4Info(), default_reference_relations,
@@ -193,6 +194,6 @@ int main(int argc, char** argv) {
           action { do_thing_4 {} }
         }
       )pb");
- 
+
   return 0;
 }

@@ -11,12 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include <string>
- 
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "glog/logging.h"
 #include "gutil/gutil/status.h"
 #include "gutil/gutil/testing.h"
 #include "p4/config/v1/p4info.pb.h"
@@ -26,9 +27,9 @@
 #include "p4_infra/p4_pdpi/pd.h"
 #include "p4_infra/p4_pdpi/testing/main_p4_pd.pb.h"
 #include "p4_infra/p4_pdpi/testing/test_helper.h"
- 
+
 using ::p4::config::v1::P4Info;
- 
+
 static void RunPiPacketInTest(const pdpi::IrP4Info& info,
                               const std::string& test_name,
                               const p4::v1::PacketIn& pi) {
@@ -36,7 +37,7 @@ static void RunPiPacketInTest(const pdpi::IrP4Info& info,
       info, absl::StrCat("PacketIn test: ", test_name), pi,
       pdpi::TranslationOptions(), pdpi::PiPacketInToIr);
 }
- 
+
 static void RunIrToPiPacketInTest(const pdpi::IrP4Info& info,
                                   const std::string& test_name,
                                   const pdpi::IrPacketIn& ir) {
@@ -44,7 +45,7 @@ static void RunIrToPiPacketInTest(const pdpi::IrP4Info& info,
       info, absl::StrCat("PacketIn test: ", test_name), ir,
       pdpi::TranslationOptions(), pdpi::IrPacketInToPi);
 }
- 
+
 static void RunIrToPdPacketInTest(const pdpi::IrP4Info& info,
                                   const std::string& test_name,
                                   const pdpi::IrPacketIn& ir) {
@@ -52,7 +53,7 @@ static void RunIrToPdPacketInTest(const pdpi::IrP4Info& info,
       info, absl::StrCat("PacketIn test: ", test_name), ir,
       pdpi::TranslationOptions(), pdpi::IrPacketInToPd);
 }
- 
+
 static void RunPdPacketInTest(const pdpi::IrP4Info& info,
                               const std::string& test_name,
                               const pdpi::PacketIn& pd,
@@ -63,7 +64,7 @@ static void RunPdPacketInTest(const pdpi::IrP4Info& info,
       pdpi::IrPacketInToPi, pdpi::PiPacketInToIr, pdpi::PdPacketInToPi,
       pdpi::PiPacketInToPd, validity);
 }
- 
+
 static void RunPiPacketOutTest(const pdpi::IrP4Info& info,
                                const std::string& test_name,
                                const p4::v1::PacketOut& pi) {
@@ -71,7 +72,7 @@ static void RunPiPacketOutTest(const pdpi::IrP4Info& info,
       info, absl::StrCat("PacketOut test: ", test_name), pi,
       pdpi::TranslationOptions(), pdpi::PiPacketOutToIr);
 }
- 
+
 static void RunIrToPiPacketOutTest(const pdpi::IrP4Info& info,
                                    const std::string& test_name,
                                    const pdpi::IrPacketOut& ir) {
@@ -79,7 +80,7 @@ static void RunIrToPiPacketOutTest(const pdpi::IrP4Info& info,
       info, absl::StrCat("PacketOut test: ", test_name), ir,
       pdpi::TranslationOptions(), pdpi::IrPacketOutToPi);
 }
- 
+
 static void RunIrToPdPacketOutTest(const pdpi::IrP4Info& info,
                                    const std::string& test_name,
                                    const pdpi::IrPacketOut& ir) {
@@ -87,7 +88,7 @@ static void RunIrToPdPacketOutTest(const pdpi::IrP4Info& info,
       info, absl::StrCat("PacketOut test: ", test_name), ir,
       pdpi::TranslationOptions(), pdpi::IrPacketOutToPd);
 }
- 
+
 static void RunPdPacketOutTest(const pdpi::IrP4Info& info,
                                const std::string& test_name,
                                const pdpi::PacketOut& pd,
@@ -98,7 +99,7 @@ static void RunPdPacketOutTest(const pdpi::IrP4Info& info,
       pdpi::IrPacketOutToPi, pdpi::PiPacketOutToIr, pdpi::PdPacketOutToPi,
       pdpi::PiPacketOutToPd, validity);
 }
- 
+
 static void RunPacketInTests(pdpi::IrP4Info info) {
   RunPiPacketInTest(info, "duplicate id",
                     gutil::ParseProtoOrDie<p4::v1::PacketIn>(R"pb(
@@ -181,6 +182,7 @@ static void RunPacketInTests(pdpi::IrP4Info info) {
       )pb"),
       INPUT_IS_VALID);
 }
+
 static void RunPacketOutTests(pdpi::IrP4Info info) {
   RunPiPacketOutTest(info, "duplicate id",
                      gutil::ParseProtoOrDie<p4::v1::PacketOut>(R"pb(
@@ -190,7 +192,7 @@ static void RunPacketOutTests(pdpi::IrP4Info info) {
                        metadata { metadata_id: 2 value: "\x1" }
                        metadata { metadata_id: 3 value: "\x0" }
                      )pb"));
- 
+
   RunPiPacketOutTest(info, "missing metadata",
                      gutil::ParseProtoOrDie<p4::v1::PacketOut>(R"pb(
                        payload: "1"
@@ -257,7 +259,7 @@ static void RunPacketOutTests(pdpi::IrP4Info info) {
       )pb"),
       INPUT_IS_VALID);
 }
- 
+
 int main(int argc, char** argv) {
   // Usage: packet_io_test <p4info file>.
   if (argc != 2) {
@@ -266,14 +268,14 @@ int main(int argc, char** argv) {
   }
   const auto p4info =
       gutil::ParseProtoFileOrDie<p4::config::v1::P4Info>(argv[1]);
- 
+
   absl::StatusOr<pdpi::IrP4Info> status_or_info = pdpi::CreateIrP4Info(p4info);
   if (!status_or_info.status().ok()) {
     std::cerr << "Unable to create IrP4Info." << std::endl;
     return 1;
   }
   pdpi::IrP4Info info = status_or_info.value();
- 
+
   RunPacketInTests(info);
   RunPacketOutTests(info);
   return 0;

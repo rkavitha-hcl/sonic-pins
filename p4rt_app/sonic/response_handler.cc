@@ -27,7 +27,7 @@
 #include "glog/logging.h"
 #include "google/rpc/code.pb.h"
 #include "gutil/gutil/status.h"
-#include "p4_pdpi/ir.pb.h"
+#include "p4_infra/p4_pdpi/ir.pb.h"
 #include "p4rt_app/sonic/adapters/consumer_notifier_adapter.h"
 #include "p4rt_app/sonic/adapters/table_adapter.h"
 #include "swss/rediscommand.h"

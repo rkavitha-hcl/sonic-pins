@@ -11,17 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/sequencing_util.h"
- 
+
 #include <cstdint>
 #include <string>
- 
+
 #include "absl/hash/hash_testing.h"
 #include "gtest/gtest.h"
 namespace pdpi {
 namespace {
- 
+
 // Tests to verify different ReferredFields are not equal and have different
 // hash values.
 // The hash value check is provided by VerifyTypeImplementsAbslHashCorrectly
@@ -44,7 +44,7 @@ TEST(ReferredFieldTest, EqualityAndHashingTest) {
       .value = value_2,
   };
   EXPECT_NE(field_1, field_2);
- 
+
   // ReferredFields with the same match field name but different values are not
   // equal.
   ReferredField field_3 = {
@@ -84,7 +84,7 @@ TEST(ReferredFieldTest, EqualityAndHashingTest) {
       .value = value_3,
   };
   EXPECT_NE(field_8, field_9);
- 
+
   EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly({
       field_1,
       field_2,
@@ -97,7 +97,7 @@ TEST(ReferredFieldTest, EqualityAndHashingTest) {
       field_9,
   }));
 }
- 
+
 TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
   ReferredField field_1{
       .match_field_id = 1,
@@ -115,7 +115,7 @@ TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
       .match_field_id = 4,
       .value = "0x004",
   };
- 
+
   // Identical ReferredTableEntries are equal.
   ReferredTableEntry entry_1 = {
       .table_id = 1,
@@ -134,7 +134,7 @@ TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
           },
   };
   EXPECT_EQ(entry_1, entry_2);
- 
+
   // Hex values can be differentiated.
   ReferredTableEntry entry_3 = {
       .table_id = 1,
@@ -180,7 +180,7 @@ TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
           },
   };
   EXPECT_NE(entry_7, entry_8);
- 
+
   // ReferredTableEntry whose referred_fields is a subset of another
   // ReferredTableEntry is not equal to that ReferredTableEntry.
   ReferredTableEntry entry_9 = {
@@ -222,7 +222,7 @@ TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
           },
   };
   EXPECT_EQ(entry_11, entry_12);
- 
+
   // ReferredTableEntries with the same set of referred_fields but different
   // table name are not equal.
   ReferredTableEntry entry_13 = {
@@ -242,7 +242,7 @@ TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
           },
   };
   EXPECT_NE(entry_13, entry_14);
- 
+
   EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly({
       entry_1,
       entry_2,
@@ -260,6 +260,6 @@ TEST(ReferredFieldEntryTest, EqualityAndHashingTest) {
       entry_14,
   }));
 }
- 
+
 }  // namespace
 }  // namespace pdpi

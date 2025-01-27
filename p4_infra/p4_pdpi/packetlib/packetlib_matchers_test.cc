@@ -11,26 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/packetlib/packetlib_matchers.h"
- 
+
 #include "gmock/gmock.h"
 #include "google/protobuf/repeated_ptr_field.h"
 #include "gtest/gtest.h"
 #include "gutil/gutil/testing.h"
 #include "p4_infra/p4_pdpi/packetlib/packetlib.pb.h"
- 
+
 namespace packetlib {
 namespace {
- 
+
 using ::testing::ElementsAre;
 using ::testing::Not;
 using ::testing::ResultOf;
- 
+
 google::protobuf::RepeatedPtrField<Header> GetHeaders(const Packet& packet) {
   return packet.headers();
 }
- 
+
 TEST(HasHeaderCaseTest, DoesHaveHeaderCase) {
   EXPECT_THAT(gutil::ParseProtoOrDie<Header>(R"pb(
                 ethernet_header {}
@@ -50,7 +50,7 @@ TEST(HasHeaderCaseTest, DoesHaveHeaderCase) {
                                        HasHeaderCase(Header::kIpv4Header),
                                        HasHeaderCase(Header::kUdpHeader))));
 }
- 
+
 TEST(HasHeaderCaseTest, NotHasHeaderCase) {
   EXPECT_THAT(gutil::ParseProtoOrDie<Header>(R"pb()pb"),
               Not(HasHeaderCase(Header::kEthernetHeader)));
@@ -63,7 +63,7 @@ TEST(HasHeaderCaseTest, NotHasHeaderCase) {
               )pb"),
               Not(HasHeaderCase(Header::kIpv4Header)));
 }
- 
+
 TEST(HasHeaderCaseTest, Description) {
   auto describe = [](const auto& matcher) {
     return testing::DescribeMatcher<packetlib::Header>(matcher);
@@ -75,6 +75,6 @@ TEST(HasHeaderCaseTest, Description) {
             "is a `packetlib.Header` protobuf message whose oneof field "
             "`header` does not have case `ethernet_header`");
 }
- 
+
 }  // namespace
 }  // namespace packetlib

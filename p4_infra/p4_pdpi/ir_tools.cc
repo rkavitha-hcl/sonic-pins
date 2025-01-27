@@ -11,12 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/ir_tools.h"
- 
+
 #include <string>
 #include <vector>
- 
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -26,10 +26,10 @@
 #include "p4/config/v1/p4info.pb.h"
 #include "p4/config/v1/p4types.pb.h"
 #include "p4_infra/p4_pdpi/ir.pb.h"
- 
+
 namespace pdpi {
 namespace {
- 
+
 // Calls given `transformer` on any parameters of `target_type` in
 // `action`.
 absl::Status TransformValuesOfType(
@@ -52,7 +52,7 @@ absl::Status TransformValuesOfType(
   }
   return absl::OkStatus();
 }
- 
+
 // Calls given `transformer` on the `match` value if it has `target_type`.
 absl::Status TransformValuesOfType(
     const IrTableDefinition& table_def,
@@ -62,7 +62,7 @@ absl::Status TransformValuesOfType(
   ASSIGN_OR_RETURN(
       const pdpi::IrMatchFieldDefinition& match_def,
       gutil::FindOrStatus(table_def.match_fields_by_name(), match.name()));
- 
+
   // If the match is of named type, call the function on it.
   if (match_def.match_field().type_name().name() == target_type.name()) {
     switch (match.match_value_case()) {
@@ -101,9 +101,9 @@ absl::Status TransformValuesOfType(
   }
   return absl::OkStatus();
 }
- 
+
 }  // namespace
- 
+
 absl::Status TransformValuesOfType(
     const IrP4Info& info, const p4::config::v1::P4NamedType& target_type,
     IrTableEntry& entry,
@@ -112,7 +112,7 @@ absl::Status TransformValuesOfType(
   ASSIGN_OR_RETURN(
       const pdpi::IrTableDefinition& table_def,
       gutil::FindOrStatus(info.tables_by_name(), entry.table_name()));
- 
+
   // If the entry has an action set, then call function on every action.
   if (entry.has_action_set()) {
     for (auto& action : *entry.mutable_action_set()->mutable_actions()) {
@@ -120,19 +120,19 @@ absl::Status TransformValuesOfType(
           info, target_type, *action.mutable_action(), transformer));
     }
   }
- 
+
   if (entry.has_action()) {
     RETURN_IF_ERROR(TransformValuesOfType(
         info, target_type, *entry.mutable_action(), transformer));
   }
- 
+
   for (auto& match : *entry.mutable_matches()) {
     RETURN_IF_ERROR(
         TransformValuesOfType(table_def, target_type, match, transformer));
   }
   return absl::OkStatus();
 }
- 
+
 absl::Status TransformValuesOfType(
     const IrP4Info& info, const p4::config::v1::P4NamedType& target_type,
     std::vector<IrTableEntry>& entries,
@@ -144,7 +144,7 @@ absl::Status TransformValuesOfType(
   }
   return absl::OkStatus();
 }
- 
+
 // This implementation is inefficient because it uses `TransformValuesOfType`,
 // which also means that it needs to copy its input entries, in order to not
 // transform them.
@@ -161,5 +161,5 @@ absl::Status VisitValuesOfType(
         return "";
       });
 }
- 
+
 }  // namespace pdpi

@@ -1,3 +1,4 @@
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,10 +16,10 @@
 
 #include <string>
 
-#include "gutil/gutil/status_matchers.h" // IWYU pragma: keep
-#include "p4_infra/p4_pdpi/ir.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "gutil/gutil/status_matchers.h"
+#include "p4_infra/p4_pdpi/ir.pb.h"
 
 namespace pdpi {
 namespace {
@@ -26,8 +27,7 @@ namespace {
 TEST(IrBuitInTable, AllTablesSupportedAndRoundTrip) {
   for (int i = IrBuiltInTable_MIN; i <= IrBuiltInTable_MAX; ++i) {
     // Skip unknown and default value of UNSPECIFIED.
-    if (!IrBuiltInTable_IsValid(i) || i == 0)
-      continue;
+    if (!IrBuiltInTable_IsValid(i) || i == 0) continue;
     IrBuiltInTable built_in_table = static_cast<IrBuiltInTable>(i);
     ASSERT_OK_AND_ASSIGN(std::string built_in_string,
                          IrBuiltInTableToString(built_in_table));
@@ -41,8 +41,7 @@ TEST(IrBuitInTable, AllTablesSupportedAndRoundTrip) {
 TEST(IrBuiltInMatchField, AllMatchFieldsSupportedAndRoundTrip) {
   for (int i = IrBuiltInMatchField_MIN; i <= IrBuiltInMatchField_MAX; ++i) {
     // Skip unknown and default value of UNSPECIFIED.
-    if (!IrBuiltInMatchField_IsValid(i) || i == 0)
-      continue;
+    if (!IrBuiltInMatchField_IsValid(i) || i == 0) continue;
     IrBuiltInMatchField built_in_field = static_cast<IrBuiltInMatchField>(i);
     ASSERT_OK_AND_ASSIGN(std::string built_in_string,
                          IrBuiltInMatchFieldToString(built_in_field));
@@ -55,8 +54,7 @@ TEST(IrBuiltInMatchField, AllMatchFieldsSupportedAndRoundTrip) {
 TEST(IrBuiltInAction, AllActionsSupportedAndRoundTrip) {
   for (int i = IrBuiltInAction_MIN; i <= IrBuiltInAction_MAX; ++i) {
     // Skip unknown and default value of UNSPECIFIED.
-    if (!IrBuiltInAction_IsValid(i) || i == 0)
-      continue;
+    if (!IrBuiltInAction_IsValid(i) || i == 0) continue;
     IrBuiltInAction built_in_action = static_cast<IrBuiltInAction>(i);
     ASSERT_OK_AND_ASSIGN(std::string built_in_string,
                          IrBuiltInActionToString(built_in_action));
@@ -70,8 +68,7 @@ TEST(IrBuiltInAction, AllActionsSupportedAndRoundTrip) {
 TEST(IrBuiltInParameter, AllParametersSupportedAndRoundTrip) {
   for (int i = IrBuiltInParameter_MIN; i <= IrBuiltInParameter_MAX; ++i) {
     // Skip unknown and default value of UNSPECIFIED.
-    if (!IrBuiltInParameter_IsValid(i) || i == 0)
-      continue;
+    if (!IrBuiltInParameter_IsValid(i) || i == 0) continue;
     IrBuiltInParameter built_in_parameter = static_cast<IrBuiltInParameter>(i);
     ASSERT_OK_AND_ASSIGN(std::string built_in_string,
                          IrBuiltInParameterToString(built_in_parameter));
@@ -84,12 +81,11 @@ TEST(IrBuiltInParameter, AllParametersSupportedAndRoundTrip) {
 TEST(IrBuiltInParameter, AllParametersHaveAnAction) {
   for (int i = IrBuiltInParameter_MIN; i <= IrBuiltInParameter_MAX; ++i) {
     // Skip unknown and default value of UNSPECIFIED.
-    if (!IrBuiltInParameter_IsValid(i) || i == 0)
-      continue;
+    if (!IrBuiltInParameter_IsValid(i) || i == 0) continue;
     EXPECT_OK(GetBuiltInActionFromBuiltInParameter(
         static_cast<IrBuiltInParameter>(i)));
   }
 }
 
-} // namespace
-} // namespace pdpi
+}  // namespace
+}  // namespace pdpi

@@ -11,17 +11,17 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #ifndef PINS_P4_INFRA_P4_PDPI_PACKETLIB_READABLE_BIT_STRING_H_
 #define PINS_P4_INFRA_P4_PDPI_PACKETLIB_READABLE_BIT_STRING_H_
- 
+
 #include <string>
- 
+
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
- 
+
 namespace pdpi {
- 
+
 // Library to write down byte strings in a readable manner. This is useful e.g.
 // for writing down network packets in a readable manner.
 //
@@ -42,7 +42,7 @@ namespace pdpi {
 // (string before the colon), hex strings, base-2 strings, and ASCII strings.
 absl::StatusOr<std::string> ReadableByteStringToByteString(
     absl::string_view readable_byte_string);
- 
+
 }  // namespace pdpi
- 
+
 #endif  // PINS_P4_INFRA_P4_PDPI_PACKETLIB_READABLE_BIT_STRING_H_

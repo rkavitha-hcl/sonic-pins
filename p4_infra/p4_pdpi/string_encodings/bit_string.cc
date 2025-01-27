@@ -11,51 +11,51 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/string_encodings/bit_string.h"
- 
+
 #include <algorithm>
- 
+
 #include "absl/status/status.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "gutil/gutil/status.h"
 #include "p4_infra/p4_pdpi/netaddr/mac_address.h"
- 
+
 namespace pdpi {
- 
+
 absl::Status BitString::Consume(int num_bits) {
   if (num_bits < 0) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "Cannot consume " << num_bits << " bits.";
+           << "Cannot consume " << num_bits << " bits.";
   }
   if (size() < num_bits) {
     return gutil::FailedPreconditionErrorBuilder()
-<< "Only " << size() << " bits left, but attempted to consume "
-<< num_bits << " bits.";
+           << "Only " << size() << " bits left, but attempted to consume "
+           << num_bits << " bits.";
   }
   start_index_ += num_bits;
   return absl::OkStatus();
 }
- 
+
 absl::StatusOr<std::string> BitString::PeekHexString(int num_bits) {
   if (num_bits < 0) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "Cannot peek " << num_bits << " bits.";
+           << "Cannot peek " << num_bits << " bits.";
   }
   if (size() < num_bits) {
     return gutil::FailedPreconditionErrorBuilder()
-<< "Only " << size() << " bits left, but attempted to peek "
-<< num_bits << " bits.";
+           << "Only " << size() << " bits left, but attempted to peek "
+           << num_bits << " bits.";
   }
   return ToHexString(start_index_, num_bits);
 }
- 
+
 absl::StatusOr<std::string> BitString::ConsumeHexString(int num_bits) {
   RETURN_IF_ERROR(Consume(num_bits));
   return ToHexString(start_index_ - num_bits, num_bits);
 }
- 
+
 absl::StatusOr<netaddr::MacAddress> BitString::ConsumeMacAddress() {
   ASSIGN_OR_RETURN(auto hex_string, ConsumeHexString(48));
   return netaddr::MacAddress::OfHexString(hex_string);
@@ -68,14 +68,14 @@ absl::StatusOr<netaddr::Ipv6Address> BitString::ConsumeIpv6Address() {
   ASSIGN_OR_RETURN(auto hex_string, ConsumeHexString(128));
   return netaddr::Ipv6Address::OfHexString(hex_string);
 }
- 
+
 absl::StatusOr<std::string> BitString::ToByteString() const {
   if (size() % 8 != 0)
     return gutil::FailedPreconditionErrorBuilder()
-<< "Only bit strings with a size that a multiple of 8 can be "
+           << "Only bit strings with a size that a multiple of 8 can be "
               "converted to a byte string. Got "
-<< size();
- 
+           << size();
+
   std::string result;
   result.reserve(size() / 8);
   for (int byte = 0; byte < size() / 8; byte++) {
@@ -88,15 +88,15 @@ absl::StatusOr<std::string> BitString::ToByteString() const {
   }
   return result;
 }
- 
+
 absl::StatusOr<std::string> BitString::ToHexString() const {
   if (size() == 0) {
     return gutil::FailedPreconditionErrorBuilder()
-<< "Cannot represent the empty bit string as a hex string";
+           << "Cannot represent the empty bit string as a hex string";
   }
   return ToHexString(start_index_, size());
 }
- 
+
 std::string BitString::ToHexString(int start, int num_bits) const {
   // Process, starting with the last byte.
   std::string result;
@@ -117,9 +117,9 @@ std::string BitString::ToHexString(int start, int num_bits) const {
     std::reverse(hex.begin(), hex.end());
     result += hex;
   }
- 
+
   std::reverse(result.begin(), result.end());
   return absl::StrCat("0x", result);
 }
- 
+
 }  // namespace pdpi

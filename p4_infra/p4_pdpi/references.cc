@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/references.h"
- 
+
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
- 
+
 #include "absl/container/btree_set.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
@@ -33,24 +33,24 @@
 #include "p4_infra/p4_pdpi/ir.pb.h"
 #include "p4_infra/p4_pdpi/reference_annotations.h"
 #include "p4_infra/p4_pdpi/string_encodings/byte_string.h"
- 
+
 namespace pdpi {
 namespace {
- 
+
 // Used to store a set of ConcreteFieldReferences, that partially represents a
 // ConcreteTableReference, coming from an action or the match fields. Partial
 // references are combined to form full references, more details below.
 using PartialConcreteTableReference = absl::btree_set<ConcreteFieldReference>;
- 
+
 // Inherited from v1model , see `standard_metadata_t.mcast_grp`.
 // https://github.com/p4lang/p4c/blob/main/p4include/v1model.p4
 constexpr int kMulticastGroupIdWidth = 16;
 // Inherited from v1model, see `standard_metadata_t.egress_rid`.
 // https://github.com/p4lang/p4c/blob/main/p4include/v1model.p4
 constexpr int kMulticastReplicaInstanceWidth = 16;
- 
+
 // -- Match Field Value Getters ------------------------------------------------
- 
+
 // Returns value of `field` in `entry` or nullopt if `field` is optional and
 // does not exist in `entry`. Returns error if `field` does not have type EXACT
 // or OPTIONAL or is non-optional and missing.
@@ -70,22 +70,22 @@ absl::StatusOr<std::optional<std::string>> GetMatchFieldValue(
               std::string type,
               gutil::GetOneOfFieldName(match_field, "field_match_type"));
           return gutil::UnimplementedErrorBuilder()
-<< "Only match field type EXACT and OPTIONAL are supported in "
+                 << "Only match field type EXACT and OPTIONAL are supported in "
                     "references. Match field '"
-<< field.field_name() << "' has type '" << type << "'.";
+                 << field.field_name() << "' has type '" << type << "'.";
         }
       }
     }
   }
- 
+
   if (FieldIsOptional(field)) return std::nullopt;
- 
+
   return gutil::InvalidArgumentErrorBuilder()
-<< "Missing EXACT match field value for "
-<< gutil::PrintShortTextProto(field) << " in entity:\n "
-<< gutil::PrintTextProto(entry);
+         << "Missing EXACT match field value for "
+         << gutil::PrintShortTextProto(field) << " in entity:\n "
+         << gutil::PrintTextProto(entry);
 }
- 
+
 // Returns value of `field` in `entry`. Returns error if `field` is not a
 // multicast group entry match field.
 absl::StatusOr<std::string> GetMatchFieldValue(
@@ -101,12 +101,12 @@ absl::StatusOr<std::string> GetMatchFieldValue(
     }
     default: {
       return gutil::InternalErrorBuilder()
-<< "Built-in field " << IrBuiltInMatchField_Name(field)
-<< " is not a multicast group entry match field.";
+             << "Built-in field " << IrBuiltInMatchField_Name(field)
+             << " is not a multicast group entry match field.";
     }
   }
 }
- 
+
 // Returns value of `field` in `entry` or nullopt if `field` is optional and
 // does not exist in `entry`. Returns error if:
 //   - `field` type is unspecified
@@ -118,10 +118,10 @@ absl::StatusOr<std::optional<std::string>> GetMatchFieldValue(
     case IrMatchField::kP4MatchField: {
       if (!entity.has_table_entry()) {
         return gutil::InvalidArgumentErrorBuilder()
-<< "IrMatchField was an IrP4MatchField but entity was not a "
+               << "IrMatchField was an IrP4MatchField but entity was not a "
                   "table entry. IrMatchField: "
-<< gutil::PrintShortTextProto(field) << "\nEntity:\n "
-<< gutil::PrintTextProto(entity);
+               << gutil::PrintShortTextProto(field) << "\nEntity:\n "
+               << gutil::PrintTextProto(entity);
       }
       return GetMatchFieldValue(field.p4_match_field(), entity.table_entry());
     }
@@ -129,10 +129,10 @@ absl::StatusOr<std::optional<std::string>> GetMatchFieldValue(
       if (!entity.packet_replication_engine_entry()
                .has_multicast_group_entry()) {
         return gutil::InvalidArgumentErrorBuilder()
-<< "IrMatchField was an IrBuiltInMatchField but entity was not "
+               << "IrMatchField was an IrBuiltInMatchField but entity was not "
                   "a multicast group entry. IrMatchField: "
-<< gutil::PrintShortTextProto(field) << "\nEntity:\n "
-<< gutil::PrintTextProto(entity);
+               << gutil::PrintShortTextProto(field) << "\nEntity:\n "
+               << gutil::PrintTextProto(entity);
       }
       return GetMatchFieldValue(
           field.built_in_match_field(),
@@ -140,12 +140,13 @@ absl::StatusOr<std::optional<std::string>> GetMatchFieldValue(
     }
     case IrField::FIELD_NOT_SET: {
       return gutil::InvalidArgumentErrorBuilder()
-<< "IrMatchField field oneof not set.";
+             << "IrMatchField field oneof not set.";
     }
   }
 }
+
 // -- Action Param Value Getters -----------------------------------------------
- 
+
 // Returns value of `field` in `entry`. Returns error if `entry` does not
 // contain `field` or `field does not have type EXACT.
 absl::StatusOr<std::string> GetActionFieldValue(const IrP4ActionField& field,
@@ -156,10 +157,10 @@ absl::StatusOr<std::string> GetActionFieldValue(const IrP4ActionField& field,
     }
   }
   return gutil::InvalidArgumentErrorBuilder()
-<< "Action " << field.action_name() << " is missing parameter "
-<< field.parameter_name();
+         << "Action " << field.action_name() << " is missing parameter "
+         << field.parameter_name();
 }
- 
+
 // Returns value of `field` in `entry`. Returns error if `field` is not a
 // multicast group entry match field.
 absl::StatusOr<std::string> GetActionFieldValue(
@@ -178,13 +179,13 @@ absl::StatusOr<std::string> GetActionFieldValue(
     }
     default: {
       return gutil::InvalidArgumentErrorBuilder()
-<< "Unknown IrBuiltInActionField " << field.DebugString();
+             << "Unknown IrBuiltInActionField " << field.DebugString();
     }
   }
 }
- 
+
 // -- Reference Field Type -----------------------------------------------------
- 
+
 // Enum representing the type of reference from an `IrField` in a source entry
 // to an `IrField` in a destination entry. These reference types dictate how
 // ConcreteFieldReferences should be merged together to form
@@ -199,7 +200,7 @@ enum class FieldReferenceType {
   kMatchFieldToMatchField,
   kActionParamToMatchField,
 };
- 
+
 // Returns `FieldReferenceType` of a reference from `source` to `destination`.
 // Returns error if the type of reference is not supported.
 absl::StatusOr<FieldReferenceType> GetReferenceType(
@@ -209,30 +210,30 @@ absl::StatusOr<FieldReferenceType> GetReferenceType(
   } else if (source.has_action_field() && destination.has_match_field()) {
     return FieldReferenceType::kActionParamToMatchField;
   }
- 
+
   return gutil::UnimplementedErrorBuilder()
-<< "Unsupported field reference from IrField "
-<< gutil::PrintShortTextProto(source) << " to IrField "
-<< gutil::PrintShortTextProto(destination);
+         << "Unsupported field reference from IrField "
+         << gutil::PrintShortTextProto(source) << " to IrField "
+         << gutil::PrintShortTextProto(destination);
 }
- 
+
 // -- Validation function ------------------------------------------------------
- 
+
 absl::Status ValidateEntityBelongsToTable(const p4::v1::Entity& entity,
                                           const IrTable& table) {
   switch (entity.entity_case()) {
     case p4::v1::Entity::kTableEntry: {
       if (!table.has_p4_table()) {
         return gutil::InvalidArgumentErrorBuilder()
-<< "Entity contained a table entry but IrTable was not an "
+               << "Entity contained a table entry but IrTable was not an "
                   "IrP4Table. IrTable: "
-<< table.DebugString();
+               << table.DebugString();
       }
       if (entity.table_entry().table_id() != table.p4_table().table_id()) {
         return gutil::InvalidArgumentErrorBuilder()
-<< "Provided table entry had id "
-<< entity.table_entry().table_id() << " but IrP4Table had id "
-<< table.p4_table().table_id();
+               << "Provided table entry had id "
+               << entity.table_entry().table_id() << " but IrP4Table had id "
+               << table.p4_table().table_id();
       }
       return absl::OkStatus();
     }
@@ -240,21 +241,21 @@ absl::Status ValidateEntityBelongsToTable(const p4::v1::Entity& entity,
       if (!entity.packet_replication_engine_entry()
                .has_multicast_group_entry()) {
         return gutil::UnimplementedErrorBuilder()
-<< "Only packet replication engine entries of type "
+               << "Only packet replication engine entries of type "
                   "multicast are supported. Entity: "
-<< entity.DebugString();
+               << entity.DebugString();
       }
       if (!table.has_built_in_table()) {
         return gutil::InvalidArgumentErrorBuilder()
-<< "Entity contained built-in table but IrTable was "
+               << "Entity contained built-in table but IrTable was "
                   "not a IrBuiltInTable. IrTable: "
-<< table.DebugString();
+               << table.DebugString();
       }
       if (table.built_in_table() != BUILT_IN_TABLE_MULTICAST_GROUP_TABLE) {
         return gutil::InvalidArgumentErrorBuilder()
-<< "Entity contained multicast group entry but IrBuiltInTable "
+               << "Entity contained multicast group entry but IrBuiltInTable "
                   "was not BUILT_IN_TABLE_MULTICAST_GROUP_ENTRY. IrTable: "
-<< table.DebugString();
+               << table.DebugString();
       }
       return absl::OkStatus();
     }
@@ -262,12 +263,12 @@ absl::Status ValidateEntityBelongsToTable(const p4::v1::Entity& entity,
       ASSIGN_OR_RETURN(std::string type,
                        gutil::GetOneOfFieldName(entity, "entity"));
       return gutil::UnimplementedErrorBuilder()
-<< "Cannot create reference entries for unsupported entity type: "
-<< type << ". Entity: " << entity.DebugString();
+             << "Cannot create reference entries for unsupported entity type: "
+             << type << ". Entity: " << entity.DebugString();
     }
   }
 }
- 
+
 absl::StatusOr<PartialConcreteTableReference> GetPartialReferenceFromAction(
     std::vector<const IrTableReference::FieldReference*>
         action_field_to_match_field_references,
@@ -282,7 +283,7 @@ absl::StatusOr<PartialConcreteTableReference> GetPartialReferenceFromAction(
         std::string param_value,
         GetActionFieldValue(
             reference->source().action_field().p4_action_field(), action));
- 
+
     result.insert(ConcreteFieldReference{
         .source_field = std::move(source_name),
         .destination_field = std::move(destination_name),
@@ -291,7 +292,7 @@ absl::StatusOr<PartialConcreteTableReference> GetPartialReferenceFromAction(
   }
   return result;
 }
- 
+
 absl::StatusOr<PartialConcreteTableReference> GetPartialReferenceFromReplica(
     std::vector<const IrTableReference::FieldReference*>
         replica_field_to_match_field_references,
@@ -302,13 +303,13 @@ absl::StatusOr<PartialConcreteTableReference> GetPartialReferenceFromReplica(
                      GetNameOfField(reference->source()));
     ASSIGN_OR_RETURN(std::string destination_name,
                      GetNameOfField(reference->destination()));
- 
+
     ASSIGN_OR_RETURN(
         std::string param_value,
         GetActionFieldValue(
             reference->source().action_field().built_in_action_field(),
             replica));
- 
+
     partial_reference.insert(ConcreteFieldReference{
         .source_field = std::move(source_name),
         .destination_field = std::move(destination_name),
@@ -317,7 +318,7 @@ absl::StatusOr<PartialConcreteTableReference> GetPartialReferenceFromReplica(
   }
   return partial_reference;
 }
- 
+
 absl::StatusOr<ConcreteFieldReference>
 ConcreteFieldReferenceFromDestinationMatchField(
     const IrTableReference::FieldReference& match_field_reference,
@@ -326,14 +327,15 @@ ConcreteFieldReferenceFromDestinationMatchField(
       std::optional<std::string> match_field_value,
       GetMatchFieldValue(match_field_reference.destination().match_field(),
                          entity));
- 
+
   if (!match_field_value.has_value()) {
     return gutil::InternalErrorBuilder()
-<< "Referenced fields cannot be OPTIONAL but we failed to find "
+           << "Referenced fields cannot be OPTIONAL but we failed to find "
               "a value for field "
-<< gutil::PrintShortTextProto(match_field_reference.destination())
-<< " in entity:\n " << gutil::PrintTextProto(entity);
+           << gutil::PrintShortTextProto(match_field_reference.destination())
+           << " in entity:\n " << gutil::PrintTextProto(entity);
   }
+
   ConcreteFieldReference result;
   ASSIGN_OR_RETURN(result.source_field,
                    GetNameOfField(match_field_reference.source()));
@@ -342,20 +344,20 @@ ConcreteFieldReferenceFromDestinationMatchField(
   result.value = std::move(*match_field_value);
   return result;
 }
- 
+
 }  // namespace
- 
+
 absl::StatusOr<absl::flat_hash_set<ConcreteTableReference>>
 OutgoingConcreteTableReferences(const IrTableReference& reference_info,
                                 const ::p4::v1::Entity& entity) {
   RETURN_IF_ERROR(
       ValidateEntityBelongsToTable(entity, reference_info.source_table()));
- 
+
   // The set of outgoing ConcreteTableReferences is created by taking the union
   // of each action partial reference with the match field partial reference.
   // If there are no action partial reference, then the match field partial
   // reference alone will form a single ConcreteTableReference.
- 
+
   // STEP 1: Group references by match field or source action.
   std::vector<const IrTableReference::FieldReference*>
       match_field_to_match_field_references;
@@ -368,10 +370,10 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
   for (const auto& field_reference : reference_info.field_references()) {
     if (FieldIsOptional(field_reference.destination())) {
       return gutil::UnimplementedErrorBuilder()
-<< "References to optional fields are not supported.\n"
-<< gutil::PrintTextProto(reference_info);
+             << "References to optional fields are not supported.\n"
+             << gutil::PrintTextProto(reference_info);
     }
- 
+
     ASSIGN_OR_RETURN(FieldReferenceType reference_type,
                      GetReferenceType(field_reference.source(),
                                       field_reference.destination()));
@@ -390,13 +392,13 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
                   .push_back(&field_reference);
         } else {
           built_in_replica_field_to_match_field_references.push_back(
-&field_reference);
+              &field_reference);
         }
         break;
       }
     }
   }
- 
+
   // STEP 2: Get partial references for each action.
   std::vector<PartialConcreteTableReference> action_partial_references;
   switch (entity.entity_case()) {
@@ -427,7 +429,7 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
         }
         default: {
           return gutil::InvalidArgumentErrorBuilder()
-<< "Unknown TableAction " << entry.action().DebugString();
+                 << "Unknown TableAction " << entry.action().DebugString();
         }
       }
       break;
@@ -456,10 +458,10 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
     }
     default: {
       return gutil::InvalidArgumentErrorBuilder()
-<< "Unknown Entity " << entity.DebugString();
+             << "Unknown Entity " << entity.DebugString();
     }
   }
- 
+
   // Step 3: Get partial reference for the match fields.
   PartialConcreteTableReference match_field_partial_reference;
   for (const auto& match_field_reference :
@@ -472,24 +474,25 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
         std::optional<std::string> match_field_value,
         GetMatchFieldValue(match_field_reference->source().match_field(),
                            entity));
- 
+
     // If there is no value, then that means that the field is optional and was
     // not present in `entity`.
     if (!match_field_value.has_value()) continue;
- 
+
     match_field_partial_reference.insert(ConcreteFieldReference{
         .source_field = std::move(source_name),
         .destination_field = std::move(destination_name),
         .value = std::move(*match_field_value),
     });
   }
+
   // Step 4: Combine partial concrete table references from actions and match
   // fields.
   ASSIGN_OR_RETURN(std::string source_table_name,
                    GetNameOfTable(reference_info.source_table()));
   ASSIGN_OR_RETURN(std::string destination_table_name,
                    GetNameOfTable(reference_info.destination_table()));
- 
+
   absl::flat_hash_set<ConcreteTableReference> result;
   // If `entity` only refers to another table via match fields, it should only
   // have a single ConcreteTableReference.
@@ -506,10 +509,9 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
     for (auto& partial_reference : action_partial_references) {
       partial_reference.insert(match_field_partial_reference.begin(),
                                match_field_partial_reference.end());
- 
       // Don't create empty references.
       if (partial_reference.empty()) continue;
- 
+
       result.insert(ConcreteTableReference{
           .source_table = source_table_name,
           .destination_table = destination_table_name,
@@ -519,7 +521,7 @@ OutgoingConcreteTableReferences(const IrTableReference& reference_info,
   }
   return result;
 }
- 
+
 // Returns incoming table references from `info` that are associated with
 // `entity`. Returns error if `entity` is unsupported or unknown.
 absl::StatusOr<google::protobuf::RepeatedPtrField<IrTableReference>>
@@ -539,11 +541,11 @@ GetIncomingTableReferences(const IrP4Info& info, const p4::v1::Entity& entity) {
         gutil::FindPtrOrStatus(info.built_in_tables(), multicast_table));
     return multicast_group_def->incoming_references();
   }
- 
+
   return gutil::InvalidArgumentErrorBuilder()
-<< "Unsupported entity type: " << entity.DebugString();
+         << "Unsupported entity type: " << entity.DebugString();
 }
- 
+
 absl::StatusOr<google::protobuf::RepeatedPtrField<IrTableReference>>
 GetOutgoingTableReferences(const IrP4Info& info, const p4::v1::Entity& entity) {
   if (entity.has_table_entry()) {
@@ -561,11 +563,11 @@ GetOutgoingTableReferences(const IrP4Info& info, const p4::v1::Entity& entity) {
         gutil::FindPtrOrStatus(info.built_in_tables(), multicast_table));
     return multicast_group_def->outgoing_references();
   }
- 
+
   return gutil::InvalidArgumentErrorBuilder()
-<< "Unsupported entity type: " << entity.DebugString();
+         << "Unsupported entity type: " << entity.DebugString();
 }
- 
+
 absl::StatusOr<std::vector<EntityWithUnsatisfiedReferences>>
 UnsatisfiedOutgoingReferences(const std::vector<::p4::v1::Entity>& pi_entities,
                               const pdpi::IrP4Info& info) {
@@ -583,7 +585,7 @@ UnsatisfiedOutgoingReferences(const std::vector<::p4::v1::Entity>& pi_entities,
                                     incoming_concrete_table_references.end());
     }
   }
- 
+
   std::vector<EntityWithUnsatisfiedReferences>
       entity_with_unsatisfied_references;
   for (const auto& pi_entity : pi_entities) {
@@ -613,18 +615,19 @@ UnsatisfiedOutgoingReferences(const std::vector<::p4::v1::Entity>& pi_entities,
   }
   return entity_with_unsatisfied_references;
 }
+
 absl::StatusOr<absl::flat_hash_set<ConcreteTableReference>>
 PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
                                         const ::p4::v1::Entity& entity) {
   RETURN_IF_ERROR(
       ValidateEntityBelongsToTable(entity, reference_info.destination_table()));
- 
+
   // The set of possible incoming ConcreteTableReferences is created by taking
   // the union of each partial reference coming from an action with the partial
   // reference coming from match fields. In addition, the partial
   // reference coming from match fields also creates its own reference since
   // referencing entities may contain no action.
- 
+
   // STEP 1: Group references by match field or source action.
   std::vector<const IrTableReference::FieldReference*>
       match_field_to_match_field_references;
@@ -635,14 +638,14 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
   // are not accessing the actions in `entity`. We are only stating that a match
   // field is being referenced by some action, and action names are sufficient
   // for that purpose, which both built-ins and user-defined support.
- 
+
   for (const auto& field_reference : reference_info.field_references()) {
     if (FieldIsOptional(field_reference.destination())) {
       return gutil::UnimplementedErrorBuilder()
-<< "References to optional fields are not supported.\n"
-<< gutil::PrintTextProto(reference_info);
+             << "References to optional fields are not supported.\n"
+             << gutil::PrintTextProto(reference_info);
     }
- 
+
     ASSIGN_OR_RETURN(FieldReferenceType reference_type,
                      GetReferenceType(field_reference.source(),
                                       field_reference.destination()));
@@ -661,7 +664,7 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
       }
     }
   }
- 
+
   // STEP 2: Get partial reference for each possible source action.
   std::vector<PartialConcreteTableReference> action_partial_references;
   for (const auto& [action_name, references] :
@@ -675,7 +678,7 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
     }
     action_partial_references.push_back(std::move(partial_reference));
   }
- 
+
   // Step 3: Get partial reference for the EXACT match fields.
   PartialConcreteTableReference exact_match_field_partial_reference;
   for (const auto& match_field_reference :
@@ -684,14 +687,14 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
     if (FieldIsOptional(match_field_reference->source())) {
       continue;
     }
- 
+
     ASSIGN_OR_RETURN(ConcreteFieldReference concrete_field_reference,
                      ConcreteFieldReferenceFromDestinationMatchField(
                          *match_field_reference, entity));
     exact_match_field_partial_reference.insert(
         std::move(concrete_field_reference));
   }
- 
+
   // Step 4: Generate optional match field partial references. This amounts to
   // unioning the set of exact match fields with every possible combination of
   // optional match fields:
@@ -728,11 +731,11 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
     if (!FieldIsOptional(match_field_reference->source())) {
       continue;
     }
- 
+
     ASSIGN_OR_RETURN(ConcreteFieldReference optional_concrete_field_reference,
                      ConcreteFieldReferenceFromDestinationMatchField(
                          *match_field_reference, entity));
- 
+
     std::vector<PartialConcreteTableReference>
         match_field_partial_references_plus_optional =
             match_field_partial_references;
@@ -743,15 +746,16 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
           std::move(partial_reference_plus_optional));
     }
   }
+
   // Step 5: Combine partial concrete table references from actions and match
   // fields.
   ASSIGN_OR_RETURN(std::string source_table_name,
                    GetNameOfTable(reference_info.source_table()));
   ASSIGN_OR_RETURN(std::string destination_table_name,
                    GetNameOfTable(reference_info.destination_table()));
- 
+
   absl::flat_hash_set<ConcreteTableReference> result;
- 
+
   // If `entity` is only referenced by another table via match fields (i.e. no
   // partial references from actions), it should have ConcreteTableReferences
   // accounting for this. This situation occurs when a referring entity
@@ -767,7 +771,7 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
       });
     }
   }
- 
+
   // Union the partial references from actions (if any) with the partial
   // references from match fields (if any).
   for (const auto& match_field_partial_reference :
@@ -775,10 +779,10 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
     for (auto partial_reference : action_partial_references) {
       partial_reference.insert(match_field_partial_reference.begin(),
                                match_field_partial_reference.end());
- 
+
       // Don't create empty references.
       if (partial_reference.empty()) continue;
- 
+
       result.insert(ConcreteTableReference{
           .source_table = source_table_name,
           .destination_table = destination_table_name,
@@ -786,10 +790,10 @@ PossibleIncomingConcreteTableReferences(const IrTableReference& reference_info,
       });
     }
   }
- 
+
   return result;
 }
- 
+
 // ConcreteFieldReference operators
 bool operator==(const ConcreteFieldReference& lhs,
                 const ConcreteFieldReference& rhs) {
@@ -811,7 +815,7 @@ bool operator<(const ConcreteFieldReference& lhs,
   }
   return lhs.value < rhs.value;
 }
- 
+
 // ConcreteTableReference operators
 bool operator==(const ConcreteTableReference& lhs,
                 const ConcreteTableReference& rhs) {
@@ -819,12 +823,12 @@ bool operator==(const ConcreteTableReference& lhs,
          lhs.destination_table == rhs.destination_table &&
          lhs.fields == rhs.fields;
 }
- 
+
 bool operator!=(const ConcreteTableReference& lhs,
                 const ConcreteTableReference& rhs) {
   return !(lhs == rhs);
 }
- 
+
 bool operator<(const ConcreteTableReference& lhs,
                const ConcreteTableReference& rhs) {
   if (lhs.source_table != rhs.source_table) {
@@ -835,5 +839,5 @@ bool operator<(const ConcreteTableReference& lhs,
   }
   return lhs.fields < rhs.fields;
 }
- 
+
 }  // namespace pdpi

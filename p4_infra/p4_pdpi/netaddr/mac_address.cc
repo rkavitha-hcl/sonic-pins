@@ -11,15 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
- 
+
 #include "p4_infra/p4_pdpi/netaddr/mac_address.h"
- 
+
 #include <bitset>
 #include <cstdint>
 #include <cstring>
 #include <string>
 #include <vector>
- 
+
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_format.h"
@@ -28,11 +28,11 @@
 #include "gutil/gutil/status.h"
 #include "p4_infra/p4_pdpi/netaddr/ipv6_address.h"
 #include "p4_infra/p4_pdpi/netaddr/network_address.h"
- 
+
 namespace netaddr {
- 
+
 namespace {
- 
+
 bool ParseByteInBase16(absl::string_view base16_string, uint8_t& byte) {
   if (base16_string.empty() || base16_string.size() > 2) return false;
   int buffer = 0;
@@ -45,18 +45,18 @@ bool ParseByteInBase16(absl::string_view base16_string, uint8_t& byte) {
   memcpy(&byte, &buffer, 1);
   return true;
 }
- 
+
 }  // namespace
- 
+
 absl::StatusOr<MacAddress> MacAddress::OfString(absl::string_view address) {
   auto invalid = [=]() {
     return gutil::InvalidArgumentErrorBuilder()
-<< "Invalid MAC address: '" << address << "'";
+           << "Invalid MAC address: '" << address << "'";
   };
- 
+
   std::vector<std::string> bytes = absl::StrSplit(address, ':');
   if (bytes.size() != 6) return invalid();
- 
+
   std::bitset<48> bits;
   for (absl::string_view byte_string : bytes) {
     uint8_t byte;
@@ -66,7 +66,7 @@ absl::StatusOr<MacAddress> MacAddress::OfString(absl::string_view address) {
   }
   return MacAddress(bits);
 }
- 
+
 std::string MacAddress::ToString() const {
   uint8_t byte6 = (bits_ >> 40).to_ulong() & 0xFFu;
   uint8_t byte5 = (bits_ >> 32).to_ulong() & 0xFFu;
@@ -77,7 +77,7 @@ std::string MacAddress::ToString() const {
   return absl::StrFormat("%02x:%02x:%02x:%02x:%02x:%02x", byte6, byte5, byte4,
                          byte3, byte2, byte1);
 }
- 
+
 absl::StatusOr<MacAddress> MacAddress::OfLinkLocalIpv6Address(
     const Ipv6Address& ipv6) {
   std::bitset<128> bits = ipv6.ToBitset();
@@ -86,23 +86,23 @@ absl::StatusOr<MacAddress> MacAddress::OfLinkLocalIpv6Address(
       (bits & std::bitset<128>(0xFFFF'FFFF'FFFF'FFFFu)).to_ullong();
   if (upper != 0xFE80'0000'0000'0000u) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "invalid link-local IPv6 address " << ipv6
-<< ": the upper 64 bits must be fe80::/64";
+           << "invalid link-local IPv6 address " << ipv6
+           << ": the upper 64 bits must be fe80::/64";
   }
   ASSIGN_OR_RETURN(auto mac, MacAddress::OfInterfaceId(lower),
                    _.SetPrepend()
-<< "in lower 64 bits of link-local IPv6 address '"
-<< ipv6 << "': ");
+                       << "in lower 64 bits of link-local IPv6 address '"
+                       << ipv6 << "': ");
   return mac;
 }
- 
+
 absl::StatusOr<MacAddress> MacAddress::OfInterfaceId(
     const std::bitset<64>& interface_id) {
   uint64_t id = interface_id.to_ullong();
   if ((id & 0x0000'00FF'FF00'0000) != 0x0000'00FF'FE00'0000) {
     return gutil::InvalidArgumentErrorBuilder()
-<< "invalid interface ID " << pdpi::BitsetToHexString(interface_id)
-<< ": the two middle bytes must be equal to FF FE.";
+           << "invalid interface ID " << pdpi::BitsetToHexString(interface_id)
+           << ": the two middle bytes must be equal to FF FE.";
   }
   std::bitset<48> mac = ((id & 0xFFFF'FF00'0000'0000u) >> 16) |
                         ((id & 0x0000'0000'00FF'FFFF) >> 0);
@@ -110,14 +110,14 @@ absl::StatusOr<MacAddress> MacAddress::OfInterfaceId(
   mac ^= 0x02'00'00'00'00'00;
   return MacAddress(std::move(mac));
 }
- 
+
 Ipv6Address MacAddress::ToLinkLocalIpv6Address() const {
   std::bitset<64> interface_id = ToInterfaceId();
   auto padded_interface_id = std::bitset<128>(interface_id.to_ullong());
   auto link_local_prefix = std::bitset<128>(0xFE80) << 112;
   return Ipv6Address(link_local_prefix | padded_interface_id);
 }
- 
+
 std::bitset<64> MacAddress::ToInterfaceId() const {
   std::bitset<64> result = 0x0000'00FF'FE00'0000;
   // Invert 'u' bit of MAC address (7-th most significant bit).
@@ -126,5 +126,5 @@ std::bitset<64> MacAddress::ToInterfaceId() const {
   result |= (mac & 0xFF'FF'FF'00'00'00) << 16;
   return result;
 }
- 
+
 }  // namespace netaddr
